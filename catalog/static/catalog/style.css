@@ -1,0 +1,74 @@
+:root {
+  --ink: #14201c;
+  --ink-soft: #55635d;
+  --accent: #0b6b4a;
+  --line: #dce4df;
+  --ground: #f2f5f3;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+nav {
+  display: flex;
+  gap: 20px;
+  padding: 16px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+
+nav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+nav a:hover { text-decoration: underline; }
+
+main { max-width: 720px; margin: 0 auto; padding: 32px 24px; }
+
+h1 { font-size: 1.8rem; letter-spacing: -0.02em; margin: 0 0 20px; }
+
+.cards { list-style: none; padding: 0; display: grid; gap: 10px; }
+
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.card a { color: var(--ink); text-decoration: none; }
+.card a:hover { color: var(--accent); }
+
+.meta { display: block; color: var(--ink-soft); font-size: 0.85rem; margin-top: 4px; }
+
+.tags em {
+  display: inline-block;
+  font-style: normal;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: #dcede4;
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin: 6px 4px 0 0;
+}
+
+form { display: flex; gap: 8px; margin-bottom: 20px; }
+input { flex: 1; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+button { padding: 9px 18px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+
+dl { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px 22px; }
+dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); margin-top: 12px; }
+dt:first-child { margin-top: 0; }
+dd { margin: 2px 0 0; }
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 16px 24px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}

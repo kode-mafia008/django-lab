@@ -1,0 +1,20 @@
+{% extends "catalog/base.html" %}
+
+{% block title %}Search{% endblock title %}
+
+{% block content %}
+  <h1>Search</h1>
+
+  <form method="get">
+    <input name="q" value="{{ q }}" placeholder="Title or author">
+    <button type="submit">Search</button>
+  </form>
+
+  <ul class="cards">
+  {% for book in books %}
+    {% include "catalog/_book_card.html" with book=book only %}
+  {% empty %}
+    <li>{% if q %}Nothing matched "{{ q }}".{% else %}Type something to search.{% endif %}</li>
+  {% endfor %}
+  </ul>
+{% endblock content %}
