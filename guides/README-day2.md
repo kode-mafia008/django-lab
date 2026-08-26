@@ -17,6 +17,20 @@ date: "Django 5.2 LTS · Python 3.12"
 | 6 | Created an admin login | `python manage.py createsuperuser` | Superuser account |
 | 7 | Opened the admin | `runserver` → <http://127.0.0.1:8000/admin/> | Authors, Books, Genres, Author profiles |
 
+## Before you start: the `catalog` app
+
+Parts 4 and 6 are written against the `catalog` app — `Author`, `Book`, `Genre`
+and `AuthorProfile`. **`catalog` is not in this repository.** It is trainer-owned
+reference material, distributed separately.
+
+| You have `catalog/` on disk | Follow the guide exactly as written |
+| --- | --- |
+| **You do not** | Parts 1–3, 5 and 7 run unchanged. For Parts 4 and 6, either ask the trainer for the app, or apply the same steps to any model of your own — the concepts do not depend on which model you use. |
+
+Nothing in Parts 4 or 6 is specific to `Author`. `Meta.db_table`,
+`AlterModelTable`, `sqlmigrate` and the `ModelAdmin` options behave identically
+on any model, including one you write in `blog/` on Day 3.
+
 ## Conventions
 
 Same as Day 1 — see `guides/README-day1.md`.
@@ -334,6 +348,9 @@ Adding `include("blog.urls")` **before** `blog/urls.py` defines a `urlpatterns` 
 
 # Part 4 — Give `Author` an explicit table name
 
+> **Needs the `catalog` app** — see *Before you start*. Without it, apply every
+> step below to a model of your own; only the names change.
+
 ## 4.1 What Django names tables by default
 
 Django derives a table name as `<app_label>_<lowercased_model_name>`:
@@ -539,14 +556,23 @@ That last line is the important one: it follows the `Book.author` foreign key ba
 
 A migration file is as much a part of your source as the model. The model says what the schema *should* be; the migration says how to *get there* from what shipped last time. Without it, a teammate's database never changes and the two silently diverge.
 
-**TYPE**
+In a normal project you would commit the model and its migration together:
 
 ```bash
-git status
-git add catalog/models.py catalog/migrations/0002_alter_author_table.py
+git add <app>/models.py <app>/migrations/0002_*.py
 ```
 
-> **If `git status` does not list the migration**, it is being ignored. Check with `git check-ignore -v catalog/migrations/0002_alter_author_table.py`. A directory-wide ignore rule such as `catalog/` hides *new* files while leaving already-tracked ones visible — which makes the problem easy to miss, because `catalog/models.py` still shows as modified. Fix the ignore rule; do not force-add around it, or the next migration will vanish too.
+> **In *this* repository `catalog/` is gitignored**, so you will not commit today's migration — see 7.1. The principle still stands, and it applies to every app you write yourself.
+
+**A trap worth knowing**, because it is silent and it has bitten this repo: gitignore is only consulted for **untracked** files. Add a directory rule to a folder that is already partly tracked and the existing files keep showing as modified while *new* ones disappear from `git status` entirely. You then commit a model change whose migration was never staged, and every clone's `migrate` quietly does nothing.
+
+If a file you expect is missing from `git status`, check before reaching for `-f`:
+
+```bash
+git check-ignore -v <path>      # exit 0 = a rule matched; exit 1 = no rule, it is tracked
+```
+
+Fix the rule rather than force-adding around it, or the next migration vanishes too.
 
 **Never edit a migration that has been pushed.** Someone else has already applied it. Make a new one.
 
@@ -631,6 +657,10 @@ for u in User.objects.all():
 \newpage
 
 # Part 6 — The Django admin
+
+> **6.1 and 6.3 need the `catalog` app** — see *Before you start*. Without it,
+> `/admin/` shows only Groups and Users; log in, then read 6.2–6.3 as the
+> reference for registering your own models on Day 3.
 
 ## 6.1 Open it
 
@@ -749,14 +779,14 @@ You edited a row through the admin, and it was written to a table called `author
 git status
 ```
 
-**EXPECT** — `config/settings.py` modified, `catalog/models.py` modified, the new migration untracked, and `blog/` untracked.
+**EXPECT** — `config/settings.py` modified and `blog/` untracked.
 
 **TYPE**
 
 ```bash
-git add config/settings.py catalog/models.py catalog/migrations/0002_alter_author_table.py blog/
+git add config/settings.py blog/
 git status
-git commit -m "Day 2: add blog app, set Author db_table to authors"
+git commit -m "Day 2: add blog app and register it in INSTALLED_APPS"
 git push -u origin <first_name>/day2
 ```
 
@@ -764,11 +794,26 @@ Confirm on GitHub that the branch contains:
 
 - [ ] `blog/` with `apps.py`, `models.py`, `views.py`, `admin.py`, `migrations/__init__.py`
 - [ ] `config/settings.py` listing `'blog'` in `INSTALLED_APPS`
-- [ ] `catalog/models.py` with `db_table = "authors"`
-- [ ] `catalog/migrations/0002_alter_author_table.py`
 - [ ] **no** `db.sqlite3`, **no** `venv/`, **no** `__pycache__/`
 
 The database is deliberately absent. Your classmate rebuilds their own by running `migrate` — that is what migrations are for.
+
+## 7.1 Why your Part 4 work is not in that list
+
+`catalog/` is listed in this repository's `.gitignore`, so `catalog/models.py` and your new migration are deliberately **not** committed here — the app is trainer-owned and distributed separately.
+
+Trying to add them anyway tells you so:
+
+```
+$ git add catalog/models.py
+The following paths are ignored by one of your .gitignore files:
+catalog
+hint: Use -f if you really want to add them.
+```
+
+**Do not use `-f`.** The rule is intentional. Part 4 was an exercise in reading and applying a migration, not in shipping one.
+
+This is a property of *this* repo, not of Django. In a normal project `catalog/` would be tracked and its migrations committed like any other source file — which is exactly what 4.7 argues.
 
 \newpage
 
