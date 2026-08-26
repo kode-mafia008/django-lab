@@ -1,149 +1,121 @@
-# Django Practical Lab — Foundation & Django Core
+# Django Practical Lab
 
-Teaching materials and a working reference project for Modules 1–7 of
-*Django Framework Backend Development* (30 of the course's 62 contact hours).
+Course repository for *Django Framework Backend Development*. It holds the
+per-day lab sheets and the Django project students build against.
 
 ```
 django-lab/
-├── README.md                    ← you are here
-├── manage.py                    ← the reference project lives at the root
-├── requirements.txt
-├── seed.py
-├── config/                      ← project settings, root URLconf
-├── catalog/                     ← the app: models, views, templates, admin
+├── README.md                ← you are here
+├── manage.py                ← the project lives at the repository root
+├── requirements.txt         ← pinned; install from this, not from `pip install django`
+├── config/                  ← project settings and the root URLconf
+├── blog/                    ← app scaffold (Day 2); models and views come on Day 3
 └── guides/
-    ├── django-practical-lab.html   ← the lab manual. Open this in a browser.
-    ├── django-practical-lab.md     ← markdown source of the manual
-    └── build-html.sh               ← regenerates the HTML from the markdown
+    ├── README-day1.md       ← GitHub auth, cloning, branching, venv
+    └── README-day2.md       ← apps, INSTALLED_APPS, db_table, migrations, admin
 ```
 
 ---
 
-## 1. Read the lab manual
-
-Open `guides/django-practical-lab.html` in any browser — double-click it, or:
+## 1. Set up
 
 ```bash
-open guides/django-practical-lab.html          # macOS
-xdg-open guides/django-practical-lab.html      # Linux
-start guides/django-practical-lab.html         # Windows
-```
+git clone https://github.com/kode-mafia008/django-lab.git
+cd django-lab
 
-It needs no server and no internet. Everything is inlined.
-
-It contains seven sessions, one per module, each with timed demos, the exact
-commands to type, the output to expect, deliberate errors to stage, and a
-checkpoint nobody moves past until they reach it.
-
-To regenerate the HTML after editing the markdown:
-
-```bash
-bash guides/build-html.sh
-```
-
----
-
-## 2. Run the reference project
-
-The project at the repository root is the **finished state** — what a student's
-project looks like at the end of Session 7. Use it to demo the target, or to
-diff against a student who is stuck.
-
-It is already set up: virtual environment created, Django installed, database
-migrated, and ten books seeded.
-
-```bash
+python3 -m venv venv
 source venv/bin/activate        # macOS / Linux
 # venv\Scripts\Activate.ps1     # Windows PowerShell
 
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
 python manage.py runserver
 ```
 
 | URL | Shows |
 | --- | --- |
-| <http://127.0.0.1:8000/catalog/books/> | book list — templates, `select_related`, partials |
-| <http://127.0.0.1:8000/catalog/books/1/> | book detail — `get_object_or_404`, relationships |
-| <http://127.0.0.1:8000/catalog/search/?q=dune> | search — `Q` objects, filtering across a `ForeignKey` |
-| <http://127.0.0.1:8000/catalog/about/> | a static page sharing the same base template |
-| <http://127.0.0.1:8000/admin/> | the admin — `ModelAdmin` configuration |
+| <http://127.0.0.1:8000/admin/> | the admin — log in with the superuser you just made |
 
-**Admin login:** `admin` / `admin12345`
+The admin is currently the only route. `blog` has no models or views yet, so it
+does not appear there; that is Day 3's work.
 
-> This is a throwaway local password for a teaching sandbox, and `db.sqlite3`
-> is gitignored so it never leaves your machine. Never use a password like this
-> anywhere real — Module 13 covers why.
+Full step-by-step setup, including the GitHub authentication you need before
+the `git clone` above will work, is in `guides/README-day1.md`.
 
-### Reset the sample data
+---
 
-```bash
-python manage.py shell < seed.py
+## 2. Work through the guides
+
+| Guide | Covers |
+| --- | --- |
+| [`guides/README-day1.md`](guides/README-day1.md) | Personal Access Tokens, SSH keys, cloning, branching off `main`, virtual environments, `requirements.txt`, pushing to your own branch |
+| [`guides/README-day2.md`](guides/README-day2.md) | Projects vs apps, `startapp`, `INSTALLED_APPS`, URL resolution, `Meta.db_table`, reading migrations with `sqlmigrate`, `createsuperuser`, `ModelAdmin` |
+
+Each guide is written to be typed, not skimmed: every command is given verbatim,
+every expected output is the real output, and each section ends in a checkpoint
+you should reach before moving on. Every Django concept links to the official
+documentation at `docs.djangoproject.com/en/5.2/`.
+
+### Branch naming
+
+Work for each day goes on its own branch, off an up-to-date `main`:
+
+```
+{first_name}/day{N}
 ```
 
-Safe to re-run; it clears the catalog tables first.
-
-### Start over completely
+Lowercase first name, forward slash, no spaces — `priya/day1`, `arjun/day2`.
 
 ```bash
-rm db.sqlite3
-python manage.py migrate
-python manage.py shell < seed.py
-DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com \
-  DJANGO_SUPERUSER_PASSWORD=admin12345 python manage.py createsuperuser --noinput
+git switch main
+git pull origin main
+git switch -c <first_name>/day2
 ```
 
 ---
 
-## 3. What the reference project demonstrates
+## 3. The `catalog` reference app
 
-| Session | Concept | Where to look |
-| --- | --- | --- |
-| 4 | URLs, `include()`, path converters, views | `config/urls.py`, `catalog/urls.py`, `catalog/views.py` |
-| 5 | Template inheritance, `{% static %}`, partials | `catalog/templates/catalog/`, `catalog/static/catalog/` |
-| 6 | Models, `null` vs `blank`, `__str__`, `Meta`, admin | `catalog/models.py`, `catalog/admin.py` |
-| 6 | Migrations | `catalog/migrations/0001_initial.py` |
-| 7 | One-to-many — `ForeignKey` | `Book.author` |
-| 7 | Many-to-many — join table | `Book.genres` |
-| 7 | One-to-one | `AuthorProfile.author` |
-| 7 | Query optimisation | `select_related` / `prefetch_related` in `catalog/views.py` |
-| 7 | `Q` objects and search | `catalog/views.py::book_search` |
+Some exercises — Day 2 Parts 4 and 6 in particular — are written against a
+`catalog` app with `Author`, `Book`, `Genre` and `AuthorProfile` models.
 
-### See the generated SQL
+**`catalog` is not in this repository.** It is trainer-owned reference material
+and is distributed separately. If you are following Day 2 and do not have it,
+ask the trainer; the concepts (`Meta.db_table`, `AlterModelTable`, `ModelAdmin`
+options) transfer unchanged to any model you have.
 
-The single most clarifying command in Session 6:
+Everything else in both guides runs against what is in this repo.
 
-```bash
-python manage.py sqlmigrate catalog 0001
-```
+---
 
-### See the N+1 problem
+## 4. What is deliberately not committed
 
-```bash
-python manage.py shell
-```
+| Path | Why |
+| --- | --- |
+| `venv/` | Contains binaries built for one OS and CPU. Rebuild it from `requirements.txt`. |
+| `db.sqlite3` | Rebuild it with `migrate`. Never commit a database. |
+| `__pycache__/`, `*.pyc` | Generated. |
+| `.env`, `*.pem` | Secrets. |
+| `catalog/`, `seed.py`, `lab.css` | Trainer-owned; see above. |
+| `guides/django-practical-lab.md`, `guides/*.html` | The long-form trainer manual and its generated output. |
 
-```python
->>> from catalog.models import Book
->>> for b in Book.objects.all():            # 1 + 10 queries
-...     print(b.title, b.author.name)
->>> for b in Book.objects.select_related("author"):   # 1 query
-...     print(b.title, b.author.name)
-```
-
-To watch the queries scroll past, uncomment the `LOGGING` block at the bottom
-of `config/settings.py`.
+Migrations are the opposite case — **always commit them.** A migration is source
+code: the model says what the schema should be, the migration says how to get
+there. Without it, a teammate's database never changes and silently diverges
+from the models.
 
 ---
 
 ## Versions
 
-| | Pinned in the manual | Verified working here |
+| | Pinned for the cohort | Verified working here |
 | --- | --- | --- |
 | Python | 3.12.x | 3.14.6 |
 | Django | 5.2 LTS | 5.2.17 |
 | Database | SQLite | SQLite |
 
-The manual pins **Python 3.12** because it is the widest-supported version for
-a whole cohort — Django 5.2's officially supported range is 3.10–3.13. This
-machine happens to run 3.14 and the project works on it, but pin 3.12 for
-students so everyone hits the same behaviour. Confirm the current Django LTS on
+Pin **Python 3.12** for students — Django 5.2's officially supported range is
+3.10–3.13, and a whole cohort on one version means everyone hits the same
+behaviour. Confirm the current Django LTS at
 <https://www.djangoproject.com/download/> before term starts.
