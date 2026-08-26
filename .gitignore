@@ -29,10 +29,11 @@ staticfiles/
 guides/*.html
 guides/*.sh
 
-# the catalog app is trainer-owned reference material.
-# Note this ignores the CONTENTS (catalog/*), not the directory (catalog/) —
-# git never descends into an excluded directory, so `catalog/` would make the
-# negation below impossible.
-# Schema history must stay in version control, or the models and the database
-# silently diverge for anyone who clones this repo.
+# Trainer-owned material: kept on the trainer's machine, deliberately not in
+# the repo. These were tracked once, so ignoring them was not enough — they
+# had to be untracked with `git rm --cached`. Anything re-added under these
+# paths now needs `git add -f`, by design.
 catalog/
+seed.py
+lab.css
+.claude/
