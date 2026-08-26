@@ -28,3 +28,12 @@ staticfiles/
 # generated lab guides (the markdown sources in guides/ are tracked)
 guides/*.html
 guides/*.sh
+
+# the catalog app is trainer-owned reference material.
+# Note this ignores the CONTENTS (catalog/*), not the directory (catalog/) —
+# git never descends into an excluded directory, so `catalog/` would make the
+# negation below impossible.
+catalog/*
+# Schema history must stay in version control, or the models and the database
+# silently diverge for anyone who clones this repo.
+!catalog/migrations/
