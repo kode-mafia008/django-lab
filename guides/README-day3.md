@@ -1413,6 +1413,8 @@ python manage.py showmigrations
 
 # Appendix D — Trainer notes
 
+**The reference branch** — the finished state of this guide is on `dharmendra/day3` (PR #14, kept as a draft on purpose). It is generated from the code blocks below, so the two cannot drift. Use it to demo from, to diff a student's branch against, and to unblock anyone who falls badly behind. It is deliberately **not** merged: `main` has to stay at the end of Day 2 or *Start here* hands students the answers instead of an empty `blog/views.py`.
+
 **Live-demo order that lands best**
 
 1. Start at `/admin/` and ask: *how does a visitor who is not staff see this list?* Nobody has an answer, and that is the day's motivation in one question.
