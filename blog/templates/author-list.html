@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Authors{% endblock %}
+
+{% block content %}
+  <h2>Authors ({{ authors|length }})</h2>
+
+  <ul>
+    {% for author in authors %}
+      <li>
+      <b><hr>{{ author.name }} </b>
+      <br>
+      {{ author.bio|truncatewords:20 }} 
+      </li>
+    {% empty %}
+      <li>No authors yet. Add one in <a href="/admin/">the admin</a>.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}
