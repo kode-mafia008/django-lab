@@ -6,7 +6,7 @@ Safe to re-run: it clears the catalog tables first.
 from datetime import date
 from decimal import Decimal
 
-from catalog.models import Author, AuthorProfile, Book, Genre
+from blog.models import Author, AuthorProfile, Book, Genre
 
 Book.objects.all().delete()
 Genre.objects.all().delete()
