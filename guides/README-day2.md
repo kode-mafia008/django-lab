@@ -1,6 +1,6 @@
 ---
-title: "Day 2 — Apps, Table Names, Migrations and the Django Admin"
-subtitle: "Creating the blog app, giving Author an explicit table name, and getting into /admin/"
+title: "Day 2 — Apps, Models, Table Names, Migrations and the Django Admin"
+subtitle: "Creating the blog app, adding an Author model with an explicit table name, and getting into /admin/"
 author: "Django Practical Lab — daily guide series"
 date: "Django 5.2 LTS · Python 3.12"
 ---
@@ -11,11 +11,14 @@ date: "Django 5.2 LTS · Python 3.12"
 | --- | --- | --- | --- |
 | 1 | Created a second app | `python manage.py startapp blog` | `blog/` package scaffolded |
 | 2 | Registered it | `'blog'` added to `INSTALLED_APPS` | Django now loads the app |
-| 3 | Gave `Author` an explicit table name | `db_table = "authors"` in `Author.Meta` | Table renamed from `catalog_author` |
-| 4 | Generated the migration | `python manage.py makemigrations catalog` | `catalog/migrations/0002_alter_author_table.py` |
-| 5 | Applied it | `python manage.py migrate` | SQLite table is now `authors` |
-| 6 | Created an admin login | `python manage.py createsuperuser` | Superuser account |
-| 7 | Opened the admin | `runserver` → <http://127.0.0.1:8000/admin/> | Authors, Books, Genres, Author profiles |
+| 3 | Wrote the first model | `Author` in `blog/models.py` | Two fields: `name`, `bio` |
+| 4 | Gave it an explicit table name | `db_table = "authors"` in `Author.Meta` | Table is `authors`, not `blog_author` |
+| 5 | Generated the migration | `python manage.py makemigrations blog` | `blog/migrations/0001_initial.py` |
+| 6 | Applied it | `python manage.py migrate` | The `authors` table exists in SQLite |
+| 7 | Created an admin login | `python manage.py createsuperuser` | Superuser account |
+| 8 | Registered the model and opened the admin | `blog/admin.py`, then `runserver` → <http://127.0.0.1:8000/admin/> | Authors editable in the admin |
+
+Everything below runs against what is in this repository. No other app is needed.
 
 ## Conventions
 
@@ -58,7 +61,7 @@ Before creating a second app, be clear on the two words that get used interchang
 | Term | What it is | In this repo |
 | --- | --- | --- |
 | **Project** | The deployable unit. Holds settings, the root URLconf, and the WSGI/ASGI entry points. There is exactly one. | `config/` |
-| **App** | A self-contained slice of functionality — models, views, templates, its own migrations. A project has many. Apps are meant to be reusable across projects. | `catalog/`, `blog/` |
+| **App** | A self-contained slice of functionality — models, views, templates, its own migrations. A project has many. Apps are meant to be reusable across projects. | `blog/` |
 
 > **DOCS** — [Django at a glance](https://docs.djangoproject.com/en/5.2/intro/overview/) · [Applications reference](https://docs.djangoproject.com/en/5.2/ref/applications/) · [Tutorial part 1: projects vs apps](https://docs.djangoproject.com/en/5.2/intro/tutorial01/)
 
@@ -77,28 +80,28 @@ django-lab/
 │   ├── wsgi.py             <- entry point for sync production servers (gunicorn, uWSGI)
 │   └── asgi.py             <- entry point for async servers (uvicorn, daphne)
 │
-├── catalog/                <- APP 1 (books, authors, genres)
-│   ├── models.py
-│   ├── views.py
-│   ├── urls.py             <- included by config/urls.py under /catalog/
-│   ├── admin.py            <- admin registrations
-│   ├── apps.py             <- the AppConfig class
-│   ├── migrations/         <- schema history; these ARE committed
-│   ├── templates/catalog/
-│   └── static/catalog/
-│
-└── blog/                   <- APP 2 (created today)
-    ├── models.py           <- empty so far
-    ├── views.py            <- empty so far
-    ├── urls.py             <- empty so far
-    ├── admin.py            <- empty so far
+└── blog/                   <- THE APP (created today)
+    ├── __init__.py
+    ├── models.py           <- Author, added in Part 4
+    ├── views.py            <- empty so far (Day 3)
+    ├── urls.py             <- empty so far (Day 3)
+    ├── admin.py            <- admin registrations, Part 6
     ├── apps.py             <- BlogConfig
-    └── migrations/         <- only __init__.py; no migrations yet
+    ├── tests.py
+    └── migrations/         <- schema history; these ARE committed
+```
+
+Two directories `startapp` does **not** create, which you add yourself when needed:
+
+```
+blog/
+├── templates/blog/         <- note the repeated name
+└── static/blog/
 ```
 
 > **DOCS** — [`manage.py` and django-admin](https://docs.djangoproject.com/en/5.2/ref/django-admin/) · [Settings reference](https://docs.djangoproject.com/en/5.2/ref/settings/) · [How to deploy with WSGI](https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/) · [ASGI](https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/)
 
-**WHY templates and static live in a nested folder** — `catalog/templates/catalog/base.html`, not `catalog/templates/base.html`. Django searches *all* apps' template directories and returns the first match. Without the app-named subfolder, two apps that both define `base.html` would shadow each other, and which one wins would depend on `INSTALLED_APPS` order. The repeated folder name is a namespace, not a typo.
+**WHY templates and static live in a nested folder** — `blog/templates/blog/base.html`, not `blog/templates/base.html`. Django searches *all* apps' template directories and returns the first match. Without the app-named subfolder, two apps that both define `base.html` would shadow each other, and which one wins would depend on `INSTALLED_APPS` order. The repeated folder name is a namespace, not a typo.
 
 > **DOCS** — [Template loading and namespacing](https://docs.djangoproject.com/en/5.2/intro/tutorial03/#namespacing-url-names) · [Managing static files](https://docs.djangoproject.com/en/5.2/howto/static-files/)
 
@@ -180,7 +183,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'catalog',
     'blog',
 ]
 ```
@@ -273,30 +275,33 @@ cat config/urls.py
 
 ```python
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("catalog/", include("catalog.urls")),
 ]
 ```
+
+One route, and it is the admin. That is the whole URLconf today — which is why nothing you write in `blog/views.py` would be reachable yet even if you wrote it.
 
 > **DOCS** — [URL dispatcher](https://docs.djangoproject.com/en/5.2/topics/http/urls/) · [`path()`](https://docs.djangoproject.com/en/5.2/ref/urls/#path) · [`include()`](https://docs.djangoproject.com/en/5.2/ref/urls/#include) · [`ROOT_URLCONF`](https://docs.djangoproject.com/en/5.2/ref/settings/#root-urlconf)
 
 ## 3.2 How a request is resolved
 
-1. A request arrives for `/catalog/books/3/`.
+Take a request for `/blog/posts/3/`, once Day 3 has wired the app up:
+
+1. The request arrives for `/blog/posts/3/`.
 2. Django reads `ROOT_URLCONF` from settings — it points at `config.urls`.
 3. It walks `urlpatterns` **top to bottom** and stops at the first match.
-4. `"admin/"` does not match. `"catalog/"` does.
-5. `include("catalog.urls")` **strips the matched prefix** and hands the remainder — `books/3/` — to `catalog/urls.py`.
+4. `"admin/"` does not match. `"blog/"` does.
+5. `include("blog.urls")` **strips the matched prefix** and hands the remainder — `posts/3/` — to `blog/urls.py`.
 6. That file matches it against its own `urlpatterns` and calls the view.
 
-**WHY `include()` strips the prefix** — it is what makes apps portable. `catalog/urls.py` never mentions `/catalog/`, so you can remount the entire app at `/library/` by changing one line in the project, without touching the app.
+**WHY `include()` strips the prefix** — it is what makes apps portable. `blog/urls.py` never mentions `/blog/`, so you can remount the entire app at `/journal/` by changing one line in the project, without touching the app.
 
 **WHY order matters** — first match wins, so a broad pattern placed above a specific one will shadow it permanently.
 
-**WHY the trailing slash** — Django's `APPEND_SLASH` setting (on by default, via `CommonMiddleware`) redirects `/catalog/books` to `/catalog/books/`. Be consistent: define patterns with a trailing slash.
+**WHY the trailing slash** — Django's `APPEND_SLASH` setting (on by default, via `CommonMiddleware`) redirects `/blog/posts` to `/blog/posts/`. Be consistent: define patterns with a trailing slash.
 
 > **DOCS** — [`APPEND_SLASH`](https://docs.djangoproject.com/en/5.2/ref/settings/#append-slash) · [Naming URL patterns](https://docs.djangoproject.com/en/5.2/topics/http/urls/#naming-url-patterns) · [`reverse()`](https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#reverse)
 
@@ -306,10 +311,11 @@ Do not type this today — it is here so the shape is familiar when you meet it:
 
 ```python
 # config/urls.py
+from django.urls import include, path       # include() is needed from Day 3
+
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("catalog/", include("catalog.urls")),
-    path("blog/", include("blog.urls")),      # Day 3
+    path("blog/", include("blog.urls")),    # Day 3
 ]
 ```
 
@@ -332,7 +338,9 @@ Adding `include("blog.urls")` **before** `blog/urls.py` defines a `urlpatterns` 
 
 \newpage
 
-# Part 4 — Give `Author` an explicit table name
+# Part 4 — Write the `Author` model with an explicit table name
+
+This is where `blog` stops being an empty scaffold. You will add one model, decide what its database table is called, and watch Django generate the SQL that creates it.
 
 ## 4.1 What Django names tables by default
 
@@ -340,48 +348,75 @@ Django derives a table name as `<app_label>_<lowercased_model_name>`:
 
 | Model | Default table |
 | --- | --- |
-| `catalog.Author` | `catalog_author` |
-| `catalog.Book` | `catalog_book` |
-| `catalog.AuthorProfile` | `catalog_authorprofile` |
+| `blog.Author` | `blog_author` |
+| `blog.Post` | `blog_post` |
+| `blog.PostCategory` | `blog_postcategory` |
 
 You can override that per model with the `db_table` option on the model's inner `Meta` class.
 
 > **DOCS** — [Model `Meta` options](https://docs.djangoproject.com/en/5.2/ref/models/options/) · [**`db_table`**](https://docs.djangoproject.com/en/5.2/ref/models/options/#db-table) · [Model `Meta` explained](https://docs.djangoproject.com/en/5.2/topics/db/models/#meta-options)
 
-## 4.2 The change
+## 4.2 Write the model
 
-Edit `catalog/models.py`:
+Replace the placeholder comment in `blog/models.py` with:
 
 ```python
+from django.db import models
+
+
 class Author(models.Model):
-    name = models.CharField(max_length=120)
+    name = models.CharField(max_length=100)
     bio = models.TextField(blank=True)
 
     class Meta:
         db_table = "authors"
-        ordering = ["name"]
 
     def __str__(self):
         return self.name
 ```
 
-That is the whole change: one line.
+Three separate decisions are packed into that, and each is worth naming.
 
-| `Meta` option | Effect | Docs |
+### The fields
+
+| Field | Type | Notes |
 | --- | --- | --- |
-| `db_table` | The physical table name in the database | [ref](https://docs.djangoproject.com/en/5.2/ref/models/options/#db-table) |
-| `ordering` | Default sort for every queryset on this model | [ref](https://docs.djangoproject.com/en/5.2/ref/models/options/#ordering) |
+| `name` | `CharField` | `max_length` is **required** — it becomes `VARCHAR(100)` in the schema |
+| `bio` | `TextField` | No length limit, so no `max_length` |
 
-**WHY you would ever set `db_table`:**
+You did not declare a primary key. Django adds one automatically: an `id` column, `BigAutoField`, because `blog/apps.py` sets `default_auto_field`.
+
+> **DOCS** — [Model field reference](https://docs.djangoproject.com/en/5.2/ref/models/fields/) · [`CharField`](https://docs.djangoproject.com/en/5.2/ref/models/fields/#charfield) · [`TextField`](https://docs.djangoproject.com/en/5.2/ref/models/fields/#textfield) · [Automatic primary keys](https://docs.djangoproject.com/en/5.2/topics/db/models/#automatic-primary-key-fields)
+
+### `blank=True` is not `null=True`
+
+The single most common early confusion, so get it straight now:
+
+| Option | Layer | Means |
+| --- | --- | --- |
+| `blank=True` | **Validation** (forms, admin) | The field may be left empty in a form |
+| `null=True` | **Database** | The column may store `NULL` |
+
+`bio = models.TextField(blank=True)` means you can save an author with no bio, and it is stored as an empty string `''` — not `NULL`. For text fields prefer this: it avoids having two different representations of "no value".
+
+> **DOCS** — [`null`](https://docs.djangoproject.com/en/5.2/ref/models/fields/#null) · [`blank`](https://docs.djangoproject.com/en/5.2/ref/models/fields/#blank) · [`null` vs `blank`](https://docs.djangoproject.com/en/5.2/ref/models/fields/#django.db.models.Field.null)
+
+### `db_table = "authors"`
+
+Without this line the table would be `blog_author`. With it, the table is `authors`.
+
+**WHY you would set it:**
 
 - **Legacy databases.** The table already exists and is called `authors`. You cannot rename it — other systems read it.
 - **Shared databases.** A DBA or another team owns the schema and has a naming standard your Django app must follow.
-- **Cross-app clarity.** `catalog_author` leaks the app name into the schema. If the app is ever renamed or the model moved, the table name becomes actively misleading.
+- **Cross-app clarity.** `blog_author` leaks the app name into the schema. If the app is ever renamed or the model moved, the table name becomes actively misleading.
 
 **WHY you often should not** — the default is predictable and self-documenting: any developer can look at a table and know which app owns it. Override deliberately, not by habit.
 
-> `__str__` is not a `Meta` option — it is a regular method, and it controls how the object is labelled in the admin, in the shell, and anywhere it is coerced to a string. Every model should define one.
->
+### `__str__`
+
+Not a `Meta` option — a regular method. It controls how the object is labelled in the admin, in the shell, and anywhere it is coerced to a string. Without it the admin shows `Author object (1)`, which is useless. Every model should define one.
+
 > **DOCS** — [`__str__()`](https://docs.djangoproject.com/en/5.2/ref/models/instances/#django.db.models.Model.__str__)
 
 ## 4.3 Generate the migration
@@ -389,16 +424,18 @@ That is the whole change: one line.
 **TYPE**
 
 ```bash
-python manage.py makemigrations catalog
+python manage.py makemigrations blog
 ```
 
 **EXPECT**
 
 ```
-Migrations for 'catalog':
-  catalog/migrations/0002_alter_author_table.py
-    ~ Rename table for author to authors
+Migrations for 'blog':
+  blog/migrations/0001_initial.py
+    + Create model Author
 ```
+
+Compare this with 2.4, where the same command reported `No changes detected`. Now there is a model, so there is a change to record.
 
 > **DOCS** — [`makemigrations`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#makemigrations)
 
@@ -409,39 +446,52 @@ Never run a migration you have not read. It is the only chance you get to catch 
 **TYPE**
 
 ```bash
-cat catalog/migrations/0002_alter_author_table.py
+cat blog/migrations/0001_initial.py
 ```
 
 **EXPECT**
 
 ```python
-from django.db import migrations
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
 
+    initial = True
+
     dependencies = [
-        ('catalog', '0001_initial'),
     ]
 
     operations = [
-        migrations.AlterModelTable(
-            name='author',
-            table='authors',
+        migrations.CreateModel(
+            name='Author',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True,
+                                           serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100)),
+                ('bio', models.TextField(blank=True)),
+            ],
+            options={
+                'db_table': 'authors',
+            },
         ),
     ]
 ```
 
 | Part | Meaning |
 | --- | --- |
-| `dependencies` | This migration must run after `catalog.0001_initial`. Django builds a dependency graph across all apps and orders every migration from it. |
-| `operations` | The actual changes. Here, exactly one. |
-| `AlterModelTable` | Emits `ALTER TABLE "catalog_author" RENAME TO "authors"` |
+| `initial = True` | The first migration for this app — nothing precedes it |
+| `dependencies` | Empty, for the same reason. Later migrations will list `('blog', '0001_initial')`. |
+| `CreateModel` | Builds the whole table in one operation |
+| The `id` field | You never wrote it. Django added it. |
+| `options={'db_table': 'authors'}` | Your `Meta` — carried into the migration |
+
+**Note what is absent:** `blank=True` appears on `bio`, but there is no `NULL` handling, because `blank` is a validation rule, not a schema one. Confirm that in the SQL next.
 
 **TYPE** — see the real SQL, without running it:
 
 ```bash
-python manage.py sqlmigrate catalog 0002
+python manage.py sqlmigrate blog 0001
 ```
 
 **EXPECT**
@@ -449,17 +499,24 @@ python manage.py sqlmigrate catalog 0002
 ```sql
 BEGIN;
 --
--- Rename table for author to authors
+-- Create model Author
 --
-ALTER TABLE "catalog_author" RENAME TO "authors";
+CREATE TABLE "authors" (
+    "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "name" varchar(100) NOT NULL,
+    "bio" text NOT NULL
+);
 COMMIT;
 ```
 
-> **DOCS** — [Migration operations reference](https://docs.djangoproject.com/en/5.2/ref/migration-operations/) · [`AlterModelTable`](https://docs.djangoproject.com/en/5.2/ref/migration-operations/#altermodeltable) · [`sqlmigrate`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#sqlmigrate)
+Read that carefully — it is the most clarifying thirty seconds of the day:
 
-**WHY this is a RENAME and not a DROP + CREATE** — Django compares the model state recorded in `0001_initial` against your current models and finds only the table name differs. A rename preserves every row. Had it dropped and recreated, all four authors would be gone.
+- The table is `"authors"`, not `"blog_author"`. That is your `db_table`.
+- `"bio" text NOT NULL` — **`blank=True` did not make the column nullable.** Exactly as described in 4.2. An empty bio is stored as `''`.
+- `"id"` exists although you never declared it.
+- `varchar(100)` comes straight from `max_length=100`. That is what `max_length` is *for*.
 
-**WHY the foreign keys do not break** — `Book.author` and `AuthorProfile.author` point at the `Author` *model*, not at a table name string. Django regenerates the FK constraints against the new table automatically. You will verify this in 4.6.
+> **DOCS** — [Migration operations reference](https://docs.djangoproject.com/en/5.2/ref/migration-operations/) · [`CreateModel`](https://docs.djangoproject.com/en/5.2/ref/migration-operations/#createmodel) · [`sqlmigrate`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#sqlmigrate)
 
 ## 4.5 Apply it
 
@@ -473,30 +530,29 @@ python manage.py migrate
 
 ```
 Operations to perform:
-  Apply all migrations: admin, auth, catalog, contenttypes, sessions
+  Apply all migrations: admin, auth, blog, contenttypes, sessions
 Running migrations:
-  Applying catalog.0002_alter_author_table... OK
+  Applying blog.0001_initial... OK
 ```
 
 **TYPE** — confirm the recorded state:
 
 ```bash
-python manage.py showmigrations catalog
+python manage.py showmigrations blog
 ```
 
 **EXPECT** — `[X]` means applied:
 
 ```
-catalog
+blog
  [X] 0001_initial
- [X] 0002_alter_author_table
 ```
 
 > **DOCS** — [`migrate`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#migrate) · [`showmigrations`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#showmigrations)
 
-## 4.6 Verify the rename, and that nothing was lost
+## 4.6 Verify the table is really called `authors`
 
-**TYPE** — inspect the database directly:
+**TYPE**
 
 ```bash
 python manage.py dbshell
@@ -504,38 +560,58 @@ python manage.py dbshell
 
 ```sql
 .tables
-SELECT COUNT(*) FROM authors;
+.schema authors
 .quit
 ```
 
-**EXPECT** — `authors` is present and `catalog_author` is gone.
+**EXPECT** — `authors` in the table list, and no `blog_author` anywhere.
 
-**TYPE** — or from the Django shell, which also proves the relationships still resolve:
+**TYPE** — or from the Django shell, which also proves the model works end to end:
 
 ```bash
 python manage.py shell
 ```
 
 ```python
->>> from catalog.models import Author, Book
+>>> from blog.models import Author
 >>> Author._meta.db_table
 'authors'
+>>> Author.objects.create(name="Ursula K. Le Guin", bio="")
+<Author: Ursula K. Le Guin>
 >>> Author.objects.count()
-4
->>> Book.objects.count()
-10
->>> Author.objects.first().books.count()
-2
+1
 >>> exit()
 ```
 
-That last line is the important one: it follows the `Book.author` foreign key backwards through `related_name="books"`. If it returns a number rather than raising, the FK survived the rename.
+`Author._meta.db_table` is how you ask Django what table a model maps to, without guessing.
 
-> **DOCS** — [`dbshell`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#dbshell) · [`shell`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#shell) · [Related objects reference](https://docs.djangoproject.com/en/5.2/ref/models/relations/) · [QuerySet API](https://docs.djangoproject.com/en/5.2/ref/models/querysets/)
+> **DOCS** — [`dbshell`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#dbshell) · [`shell`](https://docs.djangoproject.com/en/5.2/ref/django-admin/#shell) · [Making queries](https://docs.djangoproject.com/en/5.2/topics/db/queries/) · [QuerySet API](https://docs.djangoproject.com/en/5.2/ref/models/querysets/)
 
-> **CHECKPOINT 2** — `Author._meta.db_table` returns `'authors'`, the row counts are unchanged, and `.books.count()` works.
+> **CHECKPOINT 2** — `Author._meta.db_table` returns `'authors'`, and you can create and count an `Author` from the shell.
 
-## 4.7 Migrations are code — commit them
+## 4.7 Setting `db_table` on a model that already has rows
+
+You set `db_table` when creating the model, so Django emitted a single `CREATE TABLE`. Adding it to a model that is **already in the database** is a different operation, and it is worth knowing what happens.
+
+Django compares the model state recorded in previous migrations against your current models, sees that only the table name differs, and generates:
+
+```python
+migrations.AlterModelTable(name='author', table='authors')
+```
+
+which emits:
+
+```sql
+ALTER TABLE "blog_author" RENAME TO "authors";
+```
+
+A **rename**, not a drop-and-recreate — so every existing row survives. Foreign keys pointing at the model survive too, because they reference the *model*, not a table-name string; Django regenerates the constraints against the new name.
+
+You will not run this today. Recognise it when you meet it.
+
+> **DOCS** — [`AlterModelTable`](https://docs.djangoproject.com/en/5.2/ref/migration-operations/#altermodeltable)
+
+## 4.8 Migrations are code — commit them
 
 A migration file is as much a part of your source as the model. The model says what the schema *should* be; the migration says how to *get there* from what shipped last time. Without it, a teammate's database never changes and the two silently diverge.
 
@@ -543,10 +619,18 @@ A migration file is as much a part of your source as the model. The model says w
 
 ```bash
 git status
-git add catalog/models.py catalog/migrations/0002_alter_author_table.py
+git add blog/models.py blog/migrations/0001_initial.py
 ```
 
-> **If `git status` does not list the migration**, it is being ignored. Check with `git check-ignore -v catalog/migrations/0002_alter_author_table.py`. A directory-wide ignore rule such as `catalog/` hides *new* files while leaving already-tracked ones visible — which makes the problem easy to miss, because `catalog/models.py` still shows as modified. Fix the ignore rule; do not force-add around it, or the next migration will vanish too.
+**A trap worth knowing**, because it is silent: gitignore is only consulted for **untracked** files. Add a directory rule to a folder that is already partly tracked and the existing files keep showing as modified while *new* ones disappear from `git status` entirely. You then commit a model change whose migration was never staged, and every clone's `migrate` quietly does nothing.
+
+If a file you expect is missing from `git status`, check before reaching for `-f`:
+
+```bash
+git check-ignore -v <path>      # exit 0 = a rule matched; exit 1 = no rule, it is tracked
+```
+
+Fix the rule rather than force-adding around it, or the next migration vanishes too.
 
 **Never edit a migration that has been pushed.** Someone else has already applied it. Make a new one.
 
@@ -632,7 +716,7 @@ for u in User.objects.all():
 
 # Part 6 — The Django admin
 
-## 6.1 Open it
+## 6.1 Open it, before registering anything
 
 **TYPE**
 
@@ -650,94 +734,120 @@ Go to <http://127.0.0.1:8000/admin/> and log in with the superuser you just made
 AUTHENTICATION AND AUTHORIZATION
     Groups
     Users
-
-CATALOG
-    Author profiles
-    Authors
-    Books
-    Genres
 ```
 
-Two things to notice:
+**There is no `BLOG` section, and no `Authors`.** You have a model. You migrated it. The table exists and you put a row in it from the shell in 4.6. It still does not appear.
 
-- **`Authors` still reads "Authors".** The admin labels models from the class name, not the table name. Renaming the table changed nothing a user can see — which is the point of an ORM.
-- **There is no `BLOG` section.** `blog` is installed, but it has no models, so there is nothing to register and nothing to show.
+That is the lesson: **`INSTALLED_APPS` gets Django to load your model; `admin.py` gets it into the admin.** They are separate steps.
 
-## 6.2 Why those four models appear
+## 6.2 Register the model
 
-Because `catalog/admin.py` registers them:
+Edit `blog/admin.py`:
 
 ```python
 from django.contrib import admin
 
-from .models import Author, AuthorProfile, Book, Genre
+from .models import Author
+
+
+admin.site.register(Author)
+```
+
+Reload <http://127.0.0.1:8000/admin/>. No restart needed — `runserver` reloads on file change.
+
+**EXPECT**
+
+```
+AUTHENTICATION AND AUTHORIZATION
+    Groups
+    Users
+
+BLOG
+    Authors
+```
+
+Click **Authors**. The row you created in 4.6 is listed, labelled `Ursula K. Le Guin` — that is your `__str__` doing its job. Delete the `__str__` method and reload to see `Author object (1)` instead, then put it back.
+
+**A model that is not registered does not appear in the admin at all.** That is the single most common "why can't I see my model" answer.
+
+> **DOCS** — [`admin.site.register`](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.AdminSite.register)
+
+## 6.3 Configure the change list with a `ModelAdmin`
+
+Plain registration gives you defaults: one column, no search, no filters. To control the page, attach a `ModelAdmin`.
+
+Replace the contents of `blog/admin.py`:
+
+```python
+from django.contrib import admin
+
+from .models import Author
 
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
-    list_display = ("name",)
+    list_display = ("name", "bio")
     search_fields = ("name",)
-
-
-@admin.register(Book)
-class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "year", "price", "added_on")
-    list_filter = ("year", "genres")
-    search_fields = ("title", "author__name")
-    filter_horizontal = ("genres",)
-    ordering = ("-year",)
+    ordering = ("name",)
     list_per_page = 25
-
-
-admin.site.register(Genre)
-admin.site.register(AuthorProfile)
 ```
 
-There are two registration styles here, and both are fine:
+There are two registration styles, and both are fine:
 
-- `@admin.register(Book)` — decorator, attaches the `ModelAdmin` class
-- `admin.site.register(Genre)` — plain call with no `ModelAdmin`, so Django uses defaults
+- `@admin.register(Author)` — decorator, attaches the `ModelAdmin` class
+- `admin.site.register(Author)` — plain call, Django uses defaults
 
-**A model that is not registered does not appear in the admin at all.** That is the single most common "why can't I see my model" answer.
-
-> **DOCS** — [`ModelAdmin` options](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#modeladmin-options) · [`admin.site.register`](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.AdminSite.register)
-
-## 6.3 What each `ModelAdmin` option does
-
-Open **Books** and match each option to what you see:
+Reload and match each option to what changed on the page:
 
 | Option | Effect on the page | Docs |
 | --- | --- | --- |
 | `list_display` | The columns in the change list. Without it you get one column of `__str__`. | [ref](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display) |
-| `list_filter` | The filter sidebar on the right | [ref](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_filter) |
-| `search_fields` | The search box. `author__name` follows the FK — the double underscore means "traverse the relationship". | [ref](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.search_fields) |
-| `filter_horizontal` | Turns the many-to-many `genres` box into the two-pane chooser | [ref](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.filter_horizontal) |
-| `ordering` | Default sort. `-year` means descending. | [ref](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.ordering) |
+| `search_fields` | Adds the search box above the list | [ref](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.search_fields) |
+| `ordering` | Default sort. A leading `-` means descending — `("-name",)`. | [ref](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.ordering) |
 | `list_per_page` | Rows before pagination kicks in | [ref](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_per_page) |
 
-The `field__lookup` double-underscore syntax in `search_fields` is the same syntax used throughout the ORM — `Book.objects.filter(author__name="...")`.
+Three more you will need as soon as the model has relationships, on Day 3:
 
-> **DOCS** — [Field lookups](https://docs.djangoproject.com/en/5.2/topics/db/queries/#field-lookups) · [Lookups that span relationships](https://docs.djangoproject.com/en/5.2/topics/db/queries/#lookups-that-span-relationships)
+| Option | For |
+| --- | --- |
+| `list_filter` | The filter sidebar on the right | 
+| `filter_horizontal` | Turns a many-to-many box into the two-pane chooser |
+| `raw_id_fields` | Replaces a huge foreign-key dropdown with a lookup widget |
 
-## 6.4 Confirm the rename end to end
+Once `Author` has related models, `search_fields` can reach across them: `search_fields = ("name", "post__title")`. The double underscore means "traverse the relationship", and it is the same syntax used throughout the ORM — `Author.objects.filter(post__title__icontains="django")`.
 
-1. Click **Authors**. Four authors are listed.
-2. Open one. Change the bio. **Save**.
-3. Stop the server and check the write landed in the renamed table:
+> **DOCS** — [`ModelAdmin` options](https://docs.djangoproject.com/en/5.2/ref/contrib/admin/#modeladmin-options) · [Field lookups](https://docs.djangoproject.com/en/5.2/topics/db/queries/#field-lookups) · [Lookups that span relationships](https://docs.djangoproject.com/en/5.2/topics/db/queries/#lookups-that-span-relationships)
+
+## 6.4 Confirm the table name end to end
+
+1. In the admin, click **Authors** → **Add author**. Give it a name and a bio. **Save**.
+2. Stop the server and check where that write actually landed:
 
 ```bash
 python manage.py shell -c "
-from catalog.models import Author
-a = Author.objects.first()
+from blog.models import Author
+a = Author.objects.last()
 print(Author._meta.db_table, '|', a.name, '|', a.bio[:40])
 "
 ```
 
-**EXPECT** — `authors | <name> | <your edited text>`
+**EXPECT** — `authors | <name> | <your bio text>`
 
-You edited a row through the admin, and it was written to a table called `authors`. Neither the admin nor your model code mentioned that name anywhere except one line of `Meta`.
+**TYPE** — and confirm it against the database directly, bypassing Django entirely:
 
-> **CHECKPOINT 4 — Day 2 complete.** You can log into `/admin/`, see the four catalog models, edit an author, and confirm the write landed in the `authors` table.
+```bash
+python manage.py dbshell
+```
+
+```sql
+SELECT id, name FROM authors;
+.quit
+```
+
+You created a row through a web form, and it was written to a table called `authors`. Neither the admin nor your form nor your query mentioned that name anywhere except one line of `Meta`. The model name stayed `Author`, the admin label stayed "Authors", and the table underneath is whatever you said it should be — that separation is the point of an ORM.
+
+> **CHECKPOINT 4 — Day 2 complete.** You can log into `/admin/`, see **BLOG → Authors**, add an author through the form, and confirm the row is in the `authors` table.
+
 
 \newpage
 
@@ -749,26 +859,66 @@ You edited a row through the admin, and it was written to a table called `author
 git status
 ```
 
-**EXPECT** — `config/settings.py` modified, `catalog/models.py` modified, the new migration untracked, and `blog/` untracked.
+**EXPECT** — `config/settings.py` modified and `blog/` untracked.
 
 **TYPE**
 
 ```bash
-git add config/settings.py catalog/models.py catalog/migrations/0002_alter_author_table.py blog/
+git add config/settings.py blog/
 git status
-git commit -m "Day 2: add blog app, set Author db_table to authors"
+```
+
+**EXPECT** — nine files staged, and **the migration must be among them**:
+
+```
+Changes to be committed:
+	modified:   config/settings.py
+	new file:   blog/__init__.py
+	new file:   blog/admin.py
+	new file:   blog/apps.py
+	new file:   blog/migrations/0001_initial.py
+	new file:   blog/migrations/__init__.py
+	new file:   blog/models.py
+	new file:   blog/tests.py
+	new file:   blog/views.py
+```
+
+If `blog/migrations/0001_initial.py` is missing from that list, stop and re-read 4.8 — do not commit without it.
+
+**TYPE**
+
+```bash
+git commit -m "Day 2: add blog app with Author model mapped to the authors table"
 git push -u origin <first_name>/day2
 ```
 
 Confirm on GitHub that the branch contains:
 
-- [ ] `blog/` with `apps.py`, `models.py`, `views.py`, `admin.py`, `migrations/__init__.py`
+- [ ] `blog/models.py` with `Author` and `db_table = "authors"`
+- [ ] `blog/migrations/0001_initial.py`
+- [ ] `blog/admin.py` registering `Author`
 - [ ] `config/settings.py` listing `'blog'` in `INSTALLED_APPS`
-- [ ] `catalog/models.py` with `db_table = "authors"`
-- [ ] `catalog/migrations/0002_alter_author_table.py`
 - [ ] **no** `db.sqlite3`, **no** `venv/`, **no** `__pycache__/`
 
-The database is deliberately absent. Your classmate rebuilds their own by running `migrate` — that is what migrations are for.
+The database is deliberately absent. Your classmate rebuilds their own by running `migrate` — that is what migrations are for. That only works if the migration is committed, which is why it has its own checkbox above.
+
+## 7.1 Prove it worked
+
+The real test of a commit is whether someone else can use it. Clone your own branch somewhere else and rebuild from scratch:
+
+```bash
+cd /tmp
+git clone -b <first_name>/day2 <repo-url> verify-day2
+cd verify-day2
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py dbshell -c ".tables"
+```
+
+**EXPECT** — `authors` appears in the table list, on a database that did not exist sixty seconds ago. That is your migration doing its job.
+
+Clean up with `cd /tmp && rm -rf verify-day2`.
 
 \newpage
 
@@ -779,7 +929,8 @@ The database is deliberately absent. Your classmate rebuilds their own by runnin
 | `No installed app with label 'blog'` | Not in `INSTALLED_APPS`, or a typo | Check `config/settings.py`, then `manage.py check` |
 | `ModuleNotFoundError: No module named 'blog'` | Listed in settings but the directory is missing or misnamed | `ls blog/`; re-run `startapp` |
 | `No changes detected` after editing a model | Wrong app label, or you edited a file Django does not load | `python manage.py makemigrations` with no app label |
-| `Table 'catalog_author' already exists` | The migration state and the database disagree | `showmigrations`; on a lab DB, delete `db.sqlite3` and `migrate` again |
+| `table "authors" already exists` | The migration state and the database disagree | `showmigrations`; on a lab DB, delete `db.sqlite3` and `migrate` again |
+| Model saved to `blog_author`, not `authors` | `db_table` added after the table was created, migration not made | `makemigrations blog` — you should get `AlterModelTable` (4.7) |
 | `no such table: authors` | Migration created but never applied | `python manage.py migrate` |
 | `Conflicting migrations detected` | Two migrations with the same number, usually after a merge | `python manage.py makemigrations --merge` |
 | `You have N unapplied migration(s)` on `runserver` | Pending migrations | `python manage.py migrate` |
@@ -860,11 +1011,11 @@ python manage.py check                    # does the project load?
 
 # migrations
 python manage.py makemigrations           # all apps
-python manage.py makemigrations catalog   # one app
-python manage.py sqlmigrate catalog 0002  # show the SQL, run nothing
+python manage.py makemigrations blog      # one app
+python manage.py sqlmigrate blog 0001     # show the SQL, run nothing
 python manage.py migrate                  # apply
 python manage.py showmigrations           # [X] applied, [ ] pending
-python manage.py migrate catalog 0001     # roll back to 0001
+python manage.py migrate blog zero        # roll all of blog's migrations back
 
 # users
 python manage.py createsuperuser
@@ -884,20 +1035,25 @@ python manage.py runserver 8001
 **Live-demo order that lands best**
 
 1. `startapp blog`, then `runserver` *before* touching settings — nothing happens. Then add to `INSTALLED_APPS`. The contrast is what makes `INSTALLED_APPS` memorable.
-2. Show `catalog_author` in `dbshell` **before** editing `Meta`. Students need the "before" to believe the rename.
-3. Run `sqlmigrate` before `migrate`, every time, all week. Make reading generated SQL a reflex.
-4. Deliberately break it: comment out `admin.site.register(Genre)`, reload `/admin/`, watch Genres vanish. Restore.
+2. Run `makemigrations blog` at 2.4 with an empty `models.py` and let the room see `No changes detected`. Then write the model in 4.2 and run the same command. Same command, different answer — that is what a migration *is*.
+3. Run `sqlmigrate` before `migrate`, every time, all week. Make reading generated SQL a reflex. On Day 2 the payoff is `"bio" text NOT NULL` — the line that settles `null` vs `blank` for good.
+4. Open `/admin/` at 6.1 **before** writing `admin.py`. The model exists, the table exists, the row exists, and the admin still shows nothing. Then register it. Two separate steps, felt rather than told.
+5. Deliberately break it: delete `__str__`, reload, watch `Author object (1)`. Restore.
 
 **Things that reliably confuse the room**
 
 | Confusion | Say this |
 | --- | --- |
-| "Why is the admin still saying Authors?" | The admin reads the class name. The table name is a database detail the ORM hides. That is the whole point. |
-| "Why did `makemigrations blog` do nothing?" | Migrations describe model changes. No models, no changes. Not an error. |
+| "The admin says Authors but the table is `authors` — which is it?" | Both. The admin reads the class name; the table name is a database detail the ORM hides. That separation is the point. |
+| "Why did `makemigrations blog` say no changes?" | Migrations describe model changes. Before Part 4 there were no models, so no changes. Not an error. |
+| "I set `blank=True` so why is the column `NOT NULL`?" | `blank` is form validation, `null` is the database. Point at the `sqlmigrate` output. |
+| "My model is migrated but not in the admin" | `INSTALLED_APPS` loads it; `admin.py` registers it. Two steps. |
 | "Do I commit migrations?" | Yes. Always. They are source code. |
 | "Do I commit `db.sqlite3`?" | Never. Your classmate rebuilds it with `migrate`. |
 | "It says no such table" | You made the migration but did not apply it. |
 
 **Watch for** — students on Windows hitting `Set-ExecutionPolicy` again in a new terminal, and students who never reactivated the venv (`django-admin: command not found`). Both are Day 1 issues resurfacing; point at `README-day1.md` §5.2 rather than re-teaching.
 
-**Time budget** — Parts 1–2 about 30 minutes, Part 3 about 20 (discussion, no typing), Part 4 about 35 including `sqlmigrate` and verification, Parts 5–6 about 30. Roughly two hours with questions.
+**The one to check before they leave** — that `blog/migrations/0001_initial.py` is actually committed. A student who commits `models.py` alone has a branch nobody else can build, and the failure only shows up when someone clones it. Part 7.1 makes them prove it; make sure they run it.
+
+**Time budget** — Parts 1–2 about 30 minutes, Part 3 about 20 (discussion, no typing), Part 4 about 40 including `sqlmigrate` and verification, Parts 5–6 about 35. Roughly two and a quarter hours with questions.

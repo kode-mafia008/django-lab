@@ -25,15 +25,18 @@ staticfiles/
 .idea/
 .DS_Store
 
-# generated lab guides (the markdown sources in guides/ are tracked)
+# guides/: the per-day student lab sheets (README-day*.md) ARE tracked.
+# The long-form trainer manual, its generated HTML, and the build script are
+# not — the manual is written against the trainer-only catalog/ app below.
 guides/*.html
 guides/*.sh
+guides/django-practical-lab.md
 
-# the catalog app is trainer-owned reference material.
-# Note this ignores the CONTENTS (catalog/*), not the directory (catalog/) —
-# git never descends into an excluded directory, so `catalog/` would make the
-# negation below impossible.
-catalog/*
-# Schema history must stay in version control, or the models and the database
-# silently diverge for anyone who clones this repo.
-!catalog/migrations/
+# Trainer-owned material: kept on the trainer's machine, deliberately not in
+# the repo. These were tracked once, so ignoring them was not enough — they
+# had to be untracked with `git rm --cached`. Anything re-added under these
+# paths now needs `git add -f`, by design.
+catalog/
+seed.py
+lab.css
+.claude/
