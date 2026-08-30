@@ -18,13 +18,13 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.views import APIView
 
 class RegisterView(generics.CreateAPIView):
-    queryset =User.objects.none()
+    queryset = User.objects.none()
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_validd(raise_exception=true)
+        serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(UserSerializer(user).data,status=status.HTTP_201_CREATED)
 
@@ -35,6 +35,9 @@ class LoginView(TokenObtainPairView):
 class UserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
