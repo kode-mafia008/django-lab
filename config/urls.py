@@ -13,6 +13,7 @@ urlpatterns = [
     # HTML pages
     path("blogs/", include("blog.urls")),
     # path("accounts/" ,include("accounts.urls")),
+    path("accounts/", include("accounts.urls")),
     
     
      path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
