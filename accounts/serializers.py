@@ -21,11 +21,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ["id","username","email","password"]
     
 class LoginSerializer(TokenObtainPairSerializer):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields[self.username_field].required=False
-        
     
     @classmethod
     def get_token(cls, user):
