@@ -7,4 +7,6 @@ class Author(models.Model):
 
     class Meta:
         db_table = "authors"
+        def __str__(self):
+         return self.name
 
