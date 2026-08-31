@@ -8,7 +8,7 @@
   <ul>
     {% for author in authors %}
       <li>
-        <a >{{ author.name }}</a>
+        <a href="{% url 'blog:author-detail' author.pk %}">{{ author.name }}</a>
       </li>
     {% empty %}
       <li>No authors yet. Add one in <a href="/admin/">the admin</a>.</li>

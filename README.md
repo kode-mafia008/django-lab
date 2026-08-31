@@ -9,10 +9,11 @@ django-lab/
 ├── manage.py                ← the project lives at the repository root
 ├── requirements.txt         ← pinned; install from this, not from `pip install django`
 ├── config/                  ← project settings and the root URLconf
-├── blog/                    ← app scaffold (Day 2); models and views come on Day 3
+├── blog/                    ← the app; `Author` model (Day 2), views and API (Day 3)
 └── guides/
     ├── README-day1.md       ← GitHub auth, cloning, branching, venv
-    └── README-day2.md       ← apps, INSTALLED_APPS, db_table, migrations, admin
+    ├── README-day2.md       ← apps, INSTALLED_APPS, db_table, migrations, admin
+    └── README-day3.md       ← views, templates, DRF, JWT auth, OpenAPI docs
 ```
 
 ---
@@ -37,8 +38,9 @@ python manage.py runserver
 | --- | --- |
 | <http://127.0.0.1:8000/admin/> | the admin — log in with the superuser you just made |
 
-The admin is currently the only route. `blog` has no models or views yet, so it
-does not appear there; that is Day 3's work.
+The admin is currently the only route, and **Authors** is the only app listed in
+it. `blog` has the `Author` model from Day 2 but no views yet, so there is no
+public page to visit — that is where Day 3 starts.
 
 Full step-by-step setup, including the GitHub authentication you need before
 the `git clone` above will work, is in `guides/README-day1.md`.
@@ -51,6 +53,7 @@ the `git clone` above will work, is in `guides/README-day1.md`.
 | --- | --- |
 | [`guides/README-day1.md`](guides/README-day1.md) | Personal Access Tokens, SSH keys, cloning, branching off `main`, virtual environments, `requirements.txt`, pushing to your own branch |
 | [`guides/README-day2.md`](guides/README-day2.md) | Projects vs apps, `startapp`, `INSTALLED_APPS`, URL resolution, `Meta.db_table`, reading migrations with `sqlmigrate`, `createsuperuser`, `ModelAdmin` |
+| [`guides/README-day3.md`](guides/README-day3.md) | Views, URLconfs and templates, rendering the author list, Django REST Framework serializers and viewsets, JWT register/login/refresh/logout with Simple JWT, OpenAPI docs with drf-spectacular |
 
 Each guide is written to be typed, not skimmed: every command is given verbatim,
 every expected output is the real output, and each section ends in a checkpoint
