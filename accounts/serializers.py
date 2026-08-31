@@ -21,17 +21,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ["id","username","email","password"]
     
 class LoginSerializer(TokenObtainPairSerializer):
-    
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['user'] = UserSerializer(self.user).data
+        return data
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
         token['username'] = user.username
         return token
     
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        data['user'] = UserSerializer(self.user).data
-        return data
+
 
 class LoginResponseSerializer(serializers.Serializer):
     access = serializers.CharField()

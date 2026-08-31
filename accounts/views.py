@@ -4,6 +4,7 @@ from .serializers import (
     LoginSerializer,
     RegisterSerializer,
 )
+from drf_spectacular.utils import OpenApiResponse,extend_schema
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework import generics,status
@@ -24,10 +25,16 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(UserSerializer(user).data,status=status.HTTP_201_CREATED)
-    
+
+@extend_schema(
+    summary="Log in and get a token obtain pair",
+    description=(
+        "Exchange credentials for an access token and refresh token"
+    ),
+    responses={200:LoginResponseSerializer}
+)
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
-    permission_classes = [AllowAny]
 
 class UserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
@@ -45,4 +52,3 @@ class LogoutView(APIView):
         except TokenError:
             return Response({"error":"Token is invalid or expired"},status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_205_RESET_CONTENT)
-    
