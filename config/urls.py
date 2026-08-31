@@ -5,12 +5,6 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from rest_framework.routers import DefaultRouter
-
-from blog.api import AuthorViewSet
-
-router = DefaultRouter()
-router.register("authors", AuthorViewSet, basename="author")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -19,11 +13,11 @@ urlpatterns = [
     path("", include("blog.urls")),
 
     # JSON API
-    path("api/", include(router.urls)),
-    path("api/auth/", include("accounts.urls")),
+   
+    path("accounts/", include("accounts.urls")),
 
     # OpenAPI schema and docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path("api/schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/schema/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
