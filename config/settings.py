@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'accounts',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     
 ]
 
@@ -148,4 +149,3 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
 }
-
