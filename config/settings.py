@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'accounts',
     'rest_framework',
-    
+    'rest_framework_simplejwt.token_blacklist',
+   
 ]
 
 
@@ -133,7 +134,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    
+   
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
     "DEFAULT_PERMISSION_CLASSES": [
@@ -148,4 +149,3 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
 }
-
