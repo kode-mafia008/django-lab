@@ -6,4 +6,8 @@ class Author(models.Model):
     
     class Meta:
         db_table = 'authors'
+        ordering = ["name"]
+    
+    def __str__(self):
+        return self.name
        

@@ -1,9 +1,11 @@
 from django.urls import path
-from .views import ping, Home
+from .views import author_list, author_detail
 from django.contrib import admin
 
+app_name = "blog"
+
 urlpatterns = [
-    path("ping/", ping),
     path("admin/", admin.site.urls),
-    path("", Home)
+    path("", author_list, name="author-list"),
+    path("authors/<int:pk>/", author_detail, name="author-detail")
 ]       

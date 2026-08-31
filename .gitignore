@@ -27,3 +27,4 @@ staticfiles/
 
 # generated lab guides
 guides/
+token.txt
