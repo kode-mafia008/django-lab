@@ -3,6 +3,8 @@ from .serializers import (
     LoginResponseSerializer,
     LoginSerializer,
     RegisterSerializer,
+    LogoutSerializer,
+
 )
 from drf_spectacular.utils import OpenApiResponse,extend_schema
 from django.contrib.auth.models import User
@@ -27,23 +29,33 @@ class RegisterView(generics.CreateAPIView):
         return Response(UserSerializer(user).data,status=status.HTTP_201_CREATED)
 
 @extend_schema(
-    summary="Log in and get a token obtain pair",
-    description=(
-        "Exchange credentials for an access token and refresh token"
-    ),
-    responses={200:LoginResponseSerializer}
+    summary="Log in",
+    description="Obtain JWT access and refresh tokens by providing valid user credentials.",
+    responses={
+        200:LoginResponseSerializer,
+        400:OpenApiResponse(description="Invalid credentials"),
+    },
 )
+
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
 class UserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
     
-class LogoutView(APIView):
+class LogoutView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
     
     def post(self,request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        refresh = serializer.validated_data.get("refresh")
+
         refresh = request.data.get("refresh")
         if not refresh:
             return Response({"error":"Refresh Token is required"},status=status.HTTP_400_BAD_REQUEST)
