@@ -3,6 +3,7 @@ from .serializers import (
     LoginResponseSerializer,
     LoginSerializer,
     RegisterSerializer,
+    LogoutSerializer,
 )
 from drf_spectacular.utils import OpenApiResponse,extend_schema
 from django.contrib.auth.models import User
@@ -39,12 +40,20 @@ class LoginView(TokenObtainPairView):
 class UserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user 
     
-class LogoutView(APIView):
+class LogoutView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
     
     def post(self,request):
-        refresh = request.data.get("refresh")
+        print(f"request.data: {request.data}")
+        serializer=self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        refresh = serializer.validated_data.get("refresh")
         if not refresh:
             return Response({"error":"Refresh Token is required"},status=status.HTTP_400_BAD_REQUEST)
         try:
