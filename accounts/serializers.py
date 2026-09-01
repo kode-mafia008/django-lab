@@ -15,11 +15,15 @@ class RegisterSerializer(serializers.ModelSerializer):
         write_only=True,
         validators=[validate_password]
     )
-    
+
+
+    def create(self,validated_data):
+        return User.objects.create_user(**validated_data)
+
     class Meta:
         model = User
         fields = ["id","username","email","password"]
-    
+
 class LoginSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
@@ -39,6 +43,11 @@ class LoginResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
     refresh = serializers.CharField()
     user = UserSerializer()
-        
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField(
+        write_only=True,
+        help_text="Refresh token to be blacklisted"
+    )
     
         
