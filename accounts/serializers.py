@@ -19,11 +19,14 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id","username","email","password"]
+        
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
     
 class LoginSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
-        data = super().validate(attrs)
+        data = super().validate(attrs)  
         data['user'] = UserSerializer(self.user).data
         return data
 
