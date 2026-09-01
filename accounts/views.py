@@ -39,6 +39,9 @@ class LoginView(TokenObtainPairView):
 class UserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
     
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

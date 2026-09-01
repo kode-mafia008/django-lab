@@ -41,4 +41,7 @@ class LoginResponseSerializer(serializers.Serializer):
     user = UserSerializer()
         
     
-        
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()   
+    write_only = True,
+    help_text = "Refresh token to be blacklisted after logo"  

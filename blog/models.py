@@ -9,5 +9,5 @@ class Author(models.Model):
         db_table = "authors"
         ordering = ["name"]
 
-    def __str__(self):
+    def _str_(self):
         return self.name
