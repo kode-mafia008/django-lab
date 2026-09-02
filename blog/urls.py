@@ -6,7 +6,10 @@ from . import views
 app_name = "blog"
 router = DefaultRouter()
 router.register(r'blogs', views.BlogViewSet, basename='blog')
-router.register(r'authors', views.AuthorViewSet, basename='author')
+# `basename` becomes the route-name prefix. `author` would collide with the
+# `author-list` and `author-detail` page names below, in this same `blog:`
+# namespace — and a duplicate name is not an error, the later one wins.
+router.register(r'authors', views.AuthorViewSet, basename='api-author')
 
 urlpatterns = [
     path("", views.author_list, name="author-list"),
