@@ -35,8 +35,6 @@ class LoginSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token['username'] = user.username
         return token
-    
-
 
 class LoginResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
