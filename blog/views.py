@@ -16,7 +16,7 @@ def author_detail(request, pk):
     return render(request, "blog/author_detail.html", {"author": author})
 
 
-class AuthorListView(generics.ListCreateAPIView):
+class AuthorViewSet(viewsets.ModelViewSet):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
     permission_classes = [IsAuthenticated]
