@@ -1,0 +1,25 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{{ blog.title }}{% endblock %}
+
+{% block content %}
+  <h2>{{ blog.title }}</h2>
+
+  <p>
+    by <a href="{% url 'blog:author-detail' blog.author.pk %}">{{ blog.author.name }}</a>
+    — {% if blog.published %}published{% else %}<span class="draft">draft</span>{% endif %}
+  </p>
+
+  <div>{{ blog.content|linebreaks }}</div>
+
+  <table>
+    <tr><th>Created</th><td>{{ blog.created_at|date:"j M Y, H:i" }}</td></tr>
+    <tr><th>Last updated</th><td>{{ blog.updated_at|date:"j M Y, H:i" }}</td></tr>
+  </table>
+
+  <p>
+    <a href="{% url 'blog:post-update' blog.pk %}">Edit this post</a> ·
+    <a href="{% url 'blog:post-delete' blog.pk %}" class="danger">Delete</a> ·
+    <a href="{% url 'blog:post-list' %}">Back to all posts</a>
+  </p>
+{% endblock %}

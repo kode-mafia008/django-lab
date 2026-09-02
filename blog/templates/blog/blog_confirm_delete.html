@@ -1,0 +1,25 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Delete “{{ blog.title }}”?{% endblock %}
+
+{% block content %}
+  <h2>Delete this post?</h2>
+
+  <p>
+    <strong>{{ blog.title }}</strong> by {{ blog.author.name }},
+    created {{ blog.created_at|date:"j M Y" }}.
+  </p>
+
+  <p class="danger">This cannot be undone.</p>
+
+  {% comment %}
+    The confirmation page is a GET; the deletion is a POST. That split is the
+    point — a GET must never change data, or a prefetching browser or a
+    crawler following the "Delete" link would empty the table.
+  {% endcomment %}
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="danger">Yes, delete it</button>
+    <a href="{% url 'blog:post-detail' blog.pk %}">No, keep it</a>
+  </form>
+{% endblock %}
