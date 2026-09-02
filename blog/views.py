@@ -1,8 +1,9 @@
 from django.shortcuts import get_object_or_404, render
 from rest_framework import generics
-from .serializers import AuthorSerializer
-from .models import Author
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework import viewsets
+from .serializers import AuthorSerializer , BlogSerializer
+from .models import Author , Blog
+from rest_framework.permissions import IsAuthenticated
 
 
 def author_list(request):
@@ -20,4 +21,8 @@ class AuthorListView(generics.ListCreateAPIView):
     serializer_class = AuthorSerializer
     permission_classes = [IsAuthenticated]
 
-  
+class BlogViewSet(viewsets.ModelViewSet):
+    queryset = Blog.objects.all()
+    serializer_class = BlogSerializer
+    permission_classes = [IsAuthenticated]
+
