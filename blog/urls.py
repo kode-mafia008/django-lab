@@ -4,10 +4,9 @@ from . import views
 
 
 app_name = "blog"
-
 router = DefaultRouter()
 router.register(r'blogs', views.BlogViewSet, basename='blog')
-
+router.register(r'authors', views.AuthorViewSet, basename='author')
 
 urlpatterns = [
     path("", views.author_list, name="author-list"),
@@ -16,4 +15,8 @@ urlpatterns = [
     path('api/', include(router.urls)),
 
 
+    # API endpoints(Class-based views)
+    # path('api/authors',views.AuthorListView.as_view()),
+    
+    path("api/", include(router.urls)),
 ]

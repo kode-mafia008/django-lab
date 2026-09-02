@@ -1,6 +1,5 @@
 from django.db import models
 
-
 class Author(models.Model):
     name = models.CharField(max_length=100)
     bio = models.TextField(blank=True)
@@ -11,7 +10,7 @@ class Author(models.Model):
 
     def __str__(self):
         return self.name
-
+    
 class Blog(models.Model):
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200)
@@ -24,3 +23,6 @@ class Blog(models.Model):
     class Meta:
         db_table = "blogs"
         ordering = ["-created_at"]
+        
+    def __str__(self):
+        return self.title
