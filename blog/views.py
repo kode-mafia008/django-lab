@@ -1,9 +1,10 @@
-from django.shortcuts import get_object_or_404, render
-from rest_framework import generics
+from django.shortcuts import get_object_or_404, render, redirect
 from rest_framework import viewsets
 from .serializers import AuthorSerializer, BlogSerializer
 from .models import Author, Blog
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import IsAuthenticated
+from django.contrib import messages
+from .forms import BlogForm
 
 
 def author_list(request):
@@ -25,3 +26,57 @@ class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
     permission_classes = [IsAuthenticated]
+
+#form views
+def blog_list(request):
+    blogs = Blog.objects.select_related("author")
+    return render(request, "blog/blog_list.html", {"blogs": blogs})
+
+def blog_detail(request, pk):
+    blog = get_object_or_404(Blog.objects.select_related("author"), pk=pk)
+    return render(request, "blog/blog_detail.html", {"blog": blog})
+
+def blog_create(request):
+    if request.method == "POST":
+        form = BlogForm(request.POST)
+        if form.is_valid():
+            blog = form.save()
+            messages.success(request, f"Created '{blog.title}'.")
+            return redirect("blog:post_detail", pk=blog.pk)
+    else:
+        form = BlogForm()
+    return render(
+        request,
+        "blog/blog_form.html",
+        {"form": form,"heading":"New Post", "submit_label":"Create Post"},
+    )
+
+def blog_update(request, pk):
+    blog = get_object_or_404(Blog, pk=pk)
+    if request.method == "POST":
+        form = BlogForm(request.POST, instance=blog)
+        if form.is_valid():
+            blog = form.save()
+            messages.success(request, f"Saved '{blog.title}'.")
+            return redirect("blog:post_detail", pk=blog.pk)
+    else:
+        form = BlogForm(instance=blog)
+    return render(
+        request,
+        "blog/blog_form.html",
+        {
+            "form": form,
+            "blog": blog,
+            "heading":f"Edit '{blog.title}'",
+            "submit_label":"Save Changes",
+        },
+    )
+
+def blog_delete(request, pk):
+    blog = get_object_or_404(Blog, pk=pk)
+    if request.method == "POST":
+        title = blog.title
+        blog.delete()
+        messages.success(request, f"Deleted '{title}'.")
+        return redirect("blog:post_list")
+    return render(request, "blog/blog_confirm_delete.html", {"blog": blog})
