@@ -31,9 +31,8 @@
 
   <nav>
     <a href="{% url 'blog:author-list' %}">Authors</a>
-    {# Uncomment these once your post-list and post-create routes exist. #}
-    {# <a href="{% url 'blog:post-list' %}">Blog posts</a> #}
-    {# <a href="{% url 'blog:post-create' %}">New post</a> #}
+    <a href="{% url 'blog:post-list' %}">Blog posts</a>
+    <a href="{% url 'blog:post-create' %}">New post</a>
   </nav>
 
   {% if messages %}
