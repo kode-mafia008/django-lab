@@ -14,6 +14,14 @@ router.register(r'authors', views.AuthorViewSet, basename='api-author')
 urlpatterns = [
     path("", views.author_list, name="author-list"),
     path("authors/<int:pk>/", views.author_detail, name="author-detail"),
+    
+    
+    path("posts/",views.blog_list, name="post-list"),
+     path("posts/",views.blog_create, name="post-create"),
+      path("posts/",views.blog_detail, name="post-detail"),
+      path("posts/",views.blog_update, name="post-update"),
+       path("posts/",views.blog_delete, name="post-delete"),
+    
 
     # API endpoints(Class-based views)
     # path('api/authors',views.AuthorListView.as_view()),
