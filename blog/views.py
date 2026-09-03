@@ -1,21 +1,11 @@
-<<<<<<< HEAD
-from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
-=======
 from django.shortcuts import get_object_or_404, render,redirect
->>>>>>> ad6e5e5f247478d2d0f2a3be08397de53223103d
 from rest_framework import viewsets
 
 from .forms import BlogForm
 from .models import Author, Blog
-<<<<<<< HEAD
-from .serializers import AuthorSerializer, BlogSerializer
-from rest_framework.permissions import IsAuthenticated
-=======
 from rest_framework.permissions import IsAuthenticated
 from django.contrib import messages
 from .forms import BlogForm
->>>>>>> ad6e5e5f247478d2d0f2a3be08397de53223103d
 
 
 def author_list(request):
@@ -40,24 +30,14 @@ class BlogViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-<<<<<<< HEAD
-=======
 # Form views
->>>>>>> ad6e5e5f247478d2d0f2a3be08397de53223103d
 def blog_list(request):
     blogs = Blog.objects.select_related("author")
     return render(request, "blog/blog_list.html", {"blogs": blogs})
 
 
 def blog_detail(request, pk):
-<<<<<<< HEAD
-    blog = get_object_or_404(
-        Blog.objects.select_related("author"),
-        pk=pk,
-    )
-=======
     blog = get_object_or_404(Blog.objects.select_related("author"), pk=pk)
->>>>>>> ad6e5e5f247478d2d0f2a3be08397de53223103d
     return render(request, "blog/blog_detail.html", {"blog": blog})
 
 
@@ -74,15 +54,7 @@ def blog_create(request):
     return render(
         request,
         "blog/blog_form.html",
-<<<<<<< HEAD
-        {
-            "form": form,
-            "heading": "New Post",
-            "submit_label": "Create Post",
-        },
-=======
         {"form": form, "heading": "New post", "submit_label": "Create post"},
->>>>>>> ad6e5e5f247478d2d0f2a3be08397de53223103d
     )
 
 
