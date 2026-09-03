@@ -5,12 +5,13 @@
 {% block content %}
   <h2>Delete this post?</h2>
 
-  <p>
-    <strong>{{ blog.title }}</strong> by {{ blog.author.name }},
-    created {{ blog.created_at|date:"j M Y" }}.
-  </p>
-
-  <p class="danger">This cannot be undone.</p>
+  <div class="warning-panel">
+    <p>
+      <strong>{{ blog.title }}</strong> by {{ blog.author.name }},
+      created {{ blog.created_at|date:"j M Y" }}.
+    </p>
+    <p class="danger">This cannot be undone.</p>
+  </div>
 
   {% comment %}
     The confirmation page is a GET; the deletion is a POST. That split is the
@@ -19,7 +20,9 @@
   {% endcomment %}
   <form method="post">
     {% csrf_token %}
-    <button type="submit" class="danger">Yes, delete it</button>
-    <a href="{% url 'blog:post-detail' blog.pk %}">No, keep it</a>
+    <div class="form-actions">
+      <button type="submit" class="btn-danger">Yes, delete it</button>
+      <a class="btn btn-quiet" href="{% url 'blog:post-detail' blog.pk %}">No, keep it</a>
+    </div>
   </form>
 {% endblock %}
