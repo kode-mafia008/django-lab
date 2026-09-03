@@ -3,15 +3,24 @@
 {% block title %}Authors{% endblock %}
 
 {% block content %}
-  <h2>Authors ({{ authors|length }})</h2>
+  <h2>Authors <span class="badge">{{ authors|length }}</span></h2>
 
-  <ul>
-    {% for author in authors %}
-      <li>
-        <a href="{% url 'blog:author-detail' author.pk %}">{{ author.name }}</a>
-      </li>
-    {% empty %}
-      <li>No authors yet. Add one in <a href="/admin/">the admin</a>.</li>
-    {% endfor %}
-  </ul>
+  {% if authors %}
+    <ul class="card-list">
+      {% for author in authors %}
+        <li>
+          <a class="card" href="{% url 'blog:author-detail' author.pk %}">
+            <span class="card-title">{{ author.name }}</span>
+            <span class="card-meta">
+              {{ author.blogs.count }} post{{ author.blogs.count|pluralize }}
+            </span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">
+      No authors yet. Add one in <a href="/admin/">the admin</a>.
+    </p>
+  {% endif %}
 {% endblock %}
