@@ -4,7 +4,7 @@ from rest_framework import viewsets
 
 from .serializers import AuthorSerializer, BlogSerializer
 from .models import Author, Blog
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from .forms import BlogForm
 from django.contrib import messages
 
@@ -30,13 +30,15 @@ class BlogViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-#form view
 def blog_list(request):
     blogs = Blog.objects.order_by("-published")
     return render(request, "blog/blog_list.html", {"blogs": blogs})
+
+
 def blog_detail(request, pk):
     blog = get_object_or_404(Blog.objects.select_related("author"), pk=pk)
     return render(request, "blog/blog_detail.html", {"blog": blog})
+
 
 def blog_create(request):
     if request.method == "POST":
@@ -52,6 +54,8 @@ def blog_create(request):
         "blog/blog_form.html",
         {"form": form, "heading": "New Post", "button_text": "Create Post"},
     )
+
+
 def blog_update(request, pk):
     blog = get_object_or_404(Blog, pk=pk)
     if request.method == "POST":
@@ -67,6 +71,7 @@ def blog_update(request, pk):
         "blog/blog_form.html",
         {"form": form, "blog": blog, "heading": "Edit Post", "button_text": "Update Post"},
     )
+
 
 def blog_delete(request, pk):
     blog = get_object_or_404(Blog, pk=pk)
