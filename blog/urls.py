@@ -15,9 +15,9 @@ urlpatterns = [
     path("", views.author_list, name="author-list"),
     path("authors/<int:pk>/", views.author_detail, name="author-detail"),
 
-    #Blog CRUD as HTML pages(Django forms).
-    #Named `post-*` rather than `blog-*` so `blog:post-detail` reads as a 
-    #page and `api:blog-detail` reads as an endpoint.
+    # Blog CRUD as HTML pages (Django forms).
+    # Named `post-*` rather than `blog-*` so `blog:post-detail` reads as a
+    # page and `api:blog-detail` reads as an endpoint.
     path("posts/", views.blog_list, name="post-list"),
     path("posts/new/", views.blog_create, name="post-create"),
     path("posts/<int:pk>/", views.blog_detail, name="post-detail"),
@@ -28,4 +28,7 @@ urlpatterns = [
     # path('api/authors',views.AuthorListView.as_view()),
     
     path("api/", include(router.urls)),
+
+
+
 ]
