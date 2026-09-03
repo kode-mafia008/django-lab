@@ -1,0 +1,48 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Blog posts{% endblock %}
+
+{% block content %}
+  <h2>Blog posts <span class="badge">{{ blogs|length }}</span></h2>
+
+  {% if blogs %}
+    {# .table-wrap lets a wide table scroll instead of stretching the page. #}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for blog in blogs %}
+            <tr>
+              <td><a href="{% url 'blog:post-detail' blog.pk %}">{{ blog.title }}</a></td>
+              <td>{{ blog.author.name }}</td>
+              <td>
+                {% if blog.published %}
+                  <span class="badge badge-published">Published</span>
+                {% else %}
+                  <span class="badge badge-draft">Draft</span>
+                {% endif %}
+              </td>
+              <td>{{ blog.updated_at|date:"j M Y, H:i" }}</td>
+              <td class="actions">
+                <a href="{% url 'blog:post-update' blog.pk %}">Edit</a>
+                <a href="{% url 'blog:post-delete' blog.pk %}" class="danger">Delete</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty">
+      No posts yet. <a href="{% url 'blog:post-create' %}">Write the first one.</a>
+    </p>
+  {% endif %}
+{% endblock %}

@@ -1,11 +1,43 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{% block title %}Django Lab{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Django Lab{% endblock %} · Django Lab</title>
+
+  {% comment %}
+    `{% load static %}` has to be the first thing in the file, before the
+    doctype, or the tag is not available when this line runs. `{% static %}`
+    builds the URL from STATIC_URL rather than hardcoding /static/, so the
+    path still works if STATIC_URL ever changes.
+  {% endcomment %}
+  <link rel="stylesheet" href="{% static 'blog/style.css' %}">
 </head>
 <body>
-  <h1>Django Lab — Blog</h1>
-  {% block content %}{% endblock %}
+
+  <header class="site-header">
+    <p class="site-title"><a href="{% url 'blog:post-list' %}">Django Lab</a></p>
+  </header>
+
+  <nav>
+    <ul class="site-nav">
+      <li><a href="{% url 'blog:author-list' %}">Authors</a></li>
+      <li><a href="{% url 'blog:post-list' %}">Blog posts</a></li>
+      <li><a href="{% url 'blog:post-create' %}">New post</a></li>
+    </ul>
+  </nav>
+
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
 </body>
 </html>

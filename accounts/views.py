@@ -3,8 +3,8 @@ from .serializers import (
     LoginResponseSerializer,
     LoginSerializer,
     RegisterSerializer,
+    LogoutSerializer,
 )
-from drf_spectacular.utils import OpenApiResponse,extend_schema
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework import generics,status
@@ -13,6 +13,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema,OpenApiResponse
 
 
 class RegisterView(generics.CreateAPIView):
@@ -27,16 +28,18 @@ class RegisterView(generics.CreateAPIView):
         return Response(UserSerializer(user).data,status=status.HTTP_201_CREATED)
 
 @extend_schema(
-    summary="Log in and get a token obtain pair",
-    description=(
-        "Exchange credentials for an access token and refresh token"
-    ),
-    responses={200:LoginResponseSerializer}
+    summary="Login",
+    description="Obtain JWT access and refresh tokens by providing valid user credentials.",
+    responses={
+        200: LoginResponseSerializer,
+        400: OpenApiResponse(description="Invalid credentials"),
+    },
 )
 
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
     permission_classes = [AllowAny]
+
 
 class UserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
@@ -44,12 +47,17 @@ class UserView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
-        
-class LogoutView(APIView):
+
+    
+class LogoutView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
+
     
     def post(self,request):
-        refresh = request.data.get("refresh")
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        refresh = serializer.validated_data.get("refresh")
         if not refresh:
             return Response({"error":"Refresh Token is required"},status=status.HTTP_400_BAD_REQUEST)
         try:

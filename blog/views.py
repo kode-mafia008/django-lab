@@ -1,9 +1,8 @@
 from django.shortcuts import get_object_or_404, render,redirect
-from rest_framework import generics
 from rest_framework import viewsets
 from .serializers import AuthorSerializer, BlogSerializer
 from .models import Author, Blog
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import IsAuthenticated
 from django.contrib import messages
 from .forms import BlogForm
 
@@ -27,54 +26,70 @@ class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
     permission_classes = [IsAuthenticated]
-    
-#form views
+
+
+# Form views
 def blog_list(request):
     blogs = Blog.objects.select_related("author")
-    return render(request, "blog/blog_list.html", {"blogs": blogs}) 
+    return render(request, "blog/blog_list.html", {"blogs": blogs})
+
 
 def blog_detail(request, pk):
-    blog=get_object_or_404(Blog.objects.select_related("author"), pk=pk)
+    blog = get_object_or_404(Blog.objects.select_related("author"), pk=pk)
     return render(request, "blog/blog_detail.html", {"blog": blog})
+
 
 def blog_create(request):
     if request.method == "POST":
         form = BlogForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"created '{blogtitle}'.")
-            return redirect("blog:post.detail",pk=blog.pk)
+            blog = form.save()
+            messages.success(request, f"Created '{blog.title}'.")
+            return redirect("blog:post-detail", pk=blog.pk)
     else:
         form = BlogForm()
-    return render(request, "blog/blog_form.html",
-                  {"form": form,"heading": "New Post","submit_label":"Create Post"},
-                  )
-  
-    
+
+    return render(
+        request,
+        "blog/blog_form.html",
+        {"form": form, "heading": "New post", "submit_label": "Create post"},
+    )
+
+
 def blog_update(request, pk):
     blog = get_object_or_404(Blog, pk=pk)
+
     if request.method == "POST":
+        # `instance=` is the whole difference between create and update.
         form = BlogForm(request.POST, instance=blog)
         if form.is_valid():
-            blog= form.save()
-            messages.success(request, f"saved'{blog.title}'.")
-            return redirect("blog:post.detail", pk=blog.pk)
+            blog = form.save()
+            messages.success(request, f"Saved '{blog.title}'.")
+            return redirect("blog:post-detail", pk=blog.pk)
     else:
         form = BlogForm(instance=blog)
-    return render(request, "blog/blog_form.html",
-                  {"form": form,
-                   "blog": blog,
-                   "heading": f"Edit'{blog.title}'",
-                   "submit_label":"save changes"
-                   },
-                  )
+
+    return render(
+        request,
+        "blog/blog_form.html",
+        {
+            "form": form,
+            "blog": blog,
+            "heading": f"Edit '{blog.title}'",
+            "submit_label": "Save changes",
+        },
+    )
+
 
 def blog_delete(request, pk):
     blog = get_object_or_404(Blog, pk=pk)
+
+    # A GET only ever shows the confirmation page. Deleting on GET would let
+    # any link — or any crawler — destroy a row.
     if request.method == "POST":
         title = blog.title
         blog.delete()
         messages.success(request, f"Deleted '{title}'.")
-        return redirect("blog:post_list")
-    return render(request, "blog/blog_confirm_delete.html", {"blog": blog})
+        return redirect("blog:post-list")
 
+    return render(request, "blog/blog_confirm_delete.html", {"blog": blog})

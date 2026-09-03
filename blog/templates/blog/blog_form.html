@@ -1,0 +1,90 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block content %}
+  <h2>{{ heading }}</h2>
+
+  {% comment %}
+    `novalidate` turns off the browser's own checks so the room can see
+    Django's validation run. Take it off once the lesson has landed.
+
+    Note `{% comment %}` and not `{# ... #}` — the hash form is single-line
+    only. Spread it over two lines and it stops being a comment: the text
+    lands in the page and any tag inside it is executed.
+  {% endcomment %}
+  <form method="post" novalidate>
+
+    {% comment %}
+      Without this, every POST is a 403. The tag renders a hidden input whose
+      value must match the csrftoken cookie.
+    {% endcomment %}
+    {% csrf_token %}
+
+    {% comment %}
+      Errors from Form.clean() belong to no single field, so they are only
+      shown if you ask for them. Forgetting this is why a form sometimes
+      "silently refuses to save". `.form-errors` boxes them so they read as a
+      problem with the whole form rather than with the field below.
+    {% endcomment %}
+    {% if form.non_field_errors %}
+      <ul class="errorlist form-errors">
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% comment %}
+      The long way round, so the parts are visible. Once you no longer need to
+      see the seams, the single tag `form.as_p` renders all of it.
+
+      The checkbox is the one field that should not stretch to full width, so
+      it gets a different wrapper. `field.field.widget.input_type` is how a
+      template asks what kind of input it is about to render.
+    {% endcomment %}
+    {% for field in form %}
+      {% if field.field.widget.input_type == "checkbox" %}
+        <div class="field field-checkbox">
+          {{ field }}
+          {{ field.label_tag }}
+        </div>
+        {% if field.help_text %}
+          <p class="helptext">{{ field.help_text }}</p>
+        {% endif %}
+        {% if field.errors %}
+          <ul class="errorlist">
+            {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      {% else %}
+        <div class="field">
+          {{ field.label_tag }}
+          {{ field }}
+
+          {% if field.help_text %}
+            <p class="helptext">{{ field.help_text }}</p>
+          {% endif %}
+
+          {% if field.errors %}
+            <ul class="errorlist">
+              {% for error in field.errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <div class="form-actions">
+      <button type="submit">{{ submit_label }}</button>
+
+      {% if blog %}
+        <a class="btn btn-quiet" href="{% url 'blog:post-detail' blog.pk %}">Cancel</a>
+      {% else %}
+        <a class="btn btn-quiet" href="{% url 'blog:post-list' %}">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+{% endblock %}
