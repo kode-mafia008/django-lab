@@ -16,13 +16,13 @@ def author_detail(request, pk):
     author = get_object_or_404(Author, pk=pk)
     return render(request, "blog/author_detail.html", {"author": author})
 
-@extend_schema(tags=["Authors"])
+
 class AuthorViewSet(viewsets.ModelViewSet):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
     permission_classes = [IsAuthenticated]
 
-@extend_schema(tags=["Blogs"])
+
 class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
