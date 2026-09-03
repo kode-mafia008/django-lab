@@ -15,5 +15,12 @@ urlpatterns = [
     path("", views.author_list, name="author-list"),
     path("authors/<int:pk>/", views.author_detail, name="author-detail"),
 
+
+    path("posts/", views.blog_list, name="post-list"),
+    path("posts/new/", views.blog_create, name="post-create"),
+    path("posts/<int:pk>/", views.blog_detail, name="post-detail"),
+    path("posts/<int:pk>/edit/", views.blog_update, name="post-update"),
+    path("posts/<int:pk>/delete/", views.blog_delete, name="post-delete"),
+
     path('api/',include(router.urls))
 ]
