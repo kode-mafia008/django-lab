@@ -44,7 +44,7 @@ def blog_create(request):
         if form.is_valid():
             blog = form.save()
             messages.success(request, "Blog post created successfully.")
-            return redirect("blog:blog_detail", pk=blog.pk)
+            return redirect("blog:post-detail", pk=blog.pk)
     else:
         form = BlogForm()
     return render(
@@ -59,11 +59,19 @@ def blog_update(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, "Blog post updated successfully.")
-            return redirect("blog:blog_detail", pk=blog.pk)
+            return redirect("blog:post-detail", pk=blog.pk)
     else:
         form = BlogForm(instance=blog)
     return render(
         request,
         "blog/blog_form.html",
-        {"form": form, "heading": "Edit Post", "button_text": "Update Post"},
+        {"form": form, "blog": blog, "heading": "Edit Post", "button_text": "Update Post"},
     )
+
+def blog_delete(request, pk):
+    blog = get_object_or_404(Blog, pk=pk)
+    if request.method == "POST":
+        blog.delete()
+        messages.success(request, "Blog post deleted successfully.")
+        return redirect("blog:post-list")
+    return render(request, "blog/blog_confirm_delete.html", {"blog": blog})
