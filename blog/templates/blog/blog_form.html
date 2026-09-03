@@ -24,10 +24,11 @@
     {% comment %}
       Errors from Form.clean() belong to no single field, so they are only
       shown if you ask for them. Forgetting this is why a form sometimes
-      "silently refuses to save".
+      "silently refuses to save". `.form-errors` boxes them so they read as a
+      problem with the whole form rather than with the field below.
     {% endcomment %}
     {% if form.non_field_errors %}
-      <ul class="errorlist">
+      <ul class="errorlist form-errors">
         {% for error in form.non_field_errors %}
           <li>{{ error }}</li>
         {% endfor %}
@@ -37,32 +38,53 @@
     {% comment %}
       The long way round, so the parts are visible. Once you no longer need to
       see the seams, the single tag `form.as_p` renders all of it.
+
+      The checkbox is the one field that should not stretch to full width, so
+      it gets a different wrapper. `field.field.widget.input_type` is how a
+      template asks what kind of input it is about to render.
     {% endcomment %}
     {% for field in form %}
-      <div class="field">
-        {{ field.label_tag }}
-        {{ field }}
-
+      {% if field.field.widget.input_type == "checkbox" %}
+        <div class="field field-checkbox">
+          {{ field }}
+          {{ field.label_tag }}
+        </div>
         {% if field.help_text %}
           <p class="helptext">{{ field.help_text }}</p>
         {% endif %}
-
         {% if field.errors %}
           <ul class="errorlist">
-            {% for error in field.errors %}
-              <li>{{ error }}</li>
-            {% endfor %}
+            {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
           </ul>
         {% endif %}
-      </div>
+      {% else %}
+        <div class="field">
+          {{ field.label_tag }}
+          {{ field }}
+
+          {% if field.help_text %}
+            <p class="helptext">{{ field.help_text }}</p>
+          {% endif %}
+
+          {% if field.errors %}
+            <ul class="errorlist">
+              {% for error in field.errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      {% endif %}
     {% endfor %}
 
-    <button type="submit">{{ submit_label }}</button>
+    <div class="form-actions">
+      <button type="submit">{{ submit_label }}</button>
 
-    {% if blog %}
-      <a href="{% url 'blog:post-detail' blog.pk %}">Cancel</a>
-    {% else %}
-      <a href="{% url 'blog:post-list' %}">Cancel</a>
-    {% endif %}
+      {% if blog %}
+        <a class="btn btn-quiet" href="{% url 'blog:post-detail' blog.pk %}">Cancel</a>
+      {% else %}
+        <a class="btn btn-quiet" href="{% url 'blog:post-list' %}">Cancel</a>
+      {% endif %}
+    </div>
   </form>
 {% endblock %}
