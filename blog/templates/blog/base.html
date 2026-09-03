@@ -1,39 +1,30 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Django Lab{% endblock %}</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 46rem; margin: 2rem auto;
-           padding: 0 1rem; line-height: 1.5; }
-    nav a { margin-right: 1rem; }
-    nav { border-bottom: 1px solid #ddd; padding-bottom: .5rem; margin-bottom: 1.5rem; }
-    .messages { list-style: none; padding: 0; }
-    .messages li { padding: .5rem .75rem; border-left: 3px solid #444;
-                   background: #f5f5f5; margin-bottom: .5rem; }
-    .messages li.success { border-color: #2e7d32; }
-    .messages li.error   { border-color: #c62828; }
-    .errorlist { color: #c62828; margin: .25rem 0; padding-left: 1.2rem; }
-    .field { margin-bottom: 1.25rem; }
-    .field label { display: block; font-weight: 600; margin-bottom: .25rem; }
-    .helptext { color: #666; font-size: .875rem; }
-    input[type=text], textarea, select { width: 100%; padding: .4rem; font: inherit; }
-    input[type=checkbox] { width: auto; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid #eee; }
-    .draft { color: #999; }
-    .danger { color: #c62828; }
-  </style>
+  <title>{% block title %}Django Lab{% endblock %} · Django Lab</title>
+
+  {% comment %}
+    `{% load static %}` has to be the first thing in the file, before the
+    doctype, or the tag is not available when this line runs. `{% static %}`
+    builds the URL from STATIC_URL rather than hardcoding /static/, so the
+    path still works if STATIC_URL ever changes.
+  {% endcomment %}
+  <link rel="stylesheet" href="{% static 'blog/style.css' %}">
 </head>
 <body>
-  <h1>Django Lab — Blog</h1>
+
+  <header class="site-header">
+    <p class="site-title"><a href="{% url 'blog:post-list' %}">Django Lab</a></p>
+  </header>
 
   <nav>
-    <a href="{% url 'blog:author-list' %}">Authors</a>
-    {# Uncomment these once your post-list and post-create routes exist. #}
-    {# <a href="{% url 'blog:post-list' %}">Blog posts</a> #}
-    {# <a href="{% url 'blog:post-create' %}">New post</a> #}
+    <ul class="site-nav">
+      <li><a href="{% url 'blog:author-list' %}">Authors</a></li>
+      <li><a href="{% url 'blog:post-list' %}">Blog posts</a></li>
+      <li><a href="{% url 'blog:post-create' %}">New post</a></li>
+    </ul>
   </nav>
 
   {% if messages %}
@@ -44,6 +35,9 @@
     </ul>
   {% endif %}
 
-  {% block content %}{% endblock %}
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
 </body>
 </html>

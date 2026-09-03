@@ -3,7 +3,34 @@
 {% block title %}{{ author.name }}{% endblock %}
 
 {% block content %}
-  <h2>{{ author.name }}</h2>
-  <p>{{ author.bio|default:"No bio yet." }}</p>
-  <p><a href="{% url 'blog:author-list' %}">Back to all authors</a></p>
+  <article>
+    <h2>{{ author.name }}</h2>
+    <div class="article-body">
+      <p>{{ author.bio|default:"No bio yet." }}</p>
+    </div>
+  </article>
+
+  <h3>Posts <span class="badge">{{ author.blogs.count }}</span></h3>
+
+  {% if author.blogs.all %}
+    <ul class="card-list">
+      {% for blog in author.blogs.all %}
+        <li>
+          <a class="card" href="{% url 'blog:post-detail' blog.pk %}">
+            <span class="card-title">{{ blog.title }}</span>
+            <span class="card-meta">
+              {{ blog.created_at|date:"j M Y" }} &middot;
+              {% if blog.published %}Published{% else %}Draft{% endif %}
+            </span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">Nothing by this author yet.</p>
+  {% endif %}
+
+  <div class="form-actions">
+    <a class="btn btn-quiet" href="{% url 'blog:author-list' %}">Back to all authors</a>
+  </div>
 {% endblock %}
