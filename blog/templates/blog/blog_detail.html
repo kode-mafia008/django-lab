@@ -3,23 +3,30 @@
 {% block title %}{{ blog.title }}{% endblock %}
 
 {% block content %}
-  <h2>{{ blog.title }}</h2>
+  <article>
+    <h2>{{ blog.title }}</h2>
 
-  <p>
-    by <a href="{% url 'blog:author-detail' blog.author.pk %}">{{ blog.author.name }}</a>
-    — {% if blog.published %}published{% else %}<span class="draft">draft</span>{% endif %}
-  </p>
+    <p class="article-meta">
+      by <a href="{% url 'blog:author-detail' blog.author.pk %}">{{ blog.author.name }}</a>
+      &middot;
+      {% if blog.published %}
+        <span class="badge badge-published">Published</span>
+      {% else %}
+        <span class="badge badge-draft">Draft</span>
+      {% endif %}
+    </p>
 
-  <div>{{ blog.content|linebreaks }}</div>
+    <div class="article-body">{{ blog.content|linebreaks }}</div>
 
-  <table>
-    <tr><th>Created</th><td>{{ blog.created_at|date:"j M Y, H:i" }}</td></tr>
-    <tr><th>Last updated</th><td>{{ blog.updated_at|date:"j M Y, H:i" }}</td></tr>
-  </table>
+    <table class="meta-table">
+      <tr><th>Created</th><td>{{ blog.created_at|date:"j M Y, H:i" }}</td></tr>
+      <tr><th>Last updated</th><td>{{ blog.updated_at|date:"j M Y, H:i" }}</td></tr>
+    </table>
+  </article>
 
-  <p>
-    <a href="{% url 'blog:post-update' blog.pk %}">Edit this post</a> ·
-    <a href="{% url 'blog:post-delete' blog.pk %}" class="danger">Delete</a> ·
-    <a href="{% url 'blog:post-list' %}">Back to all posts</a>
-  </p>
+  <div class="form-actions">
+    <a class="btn" href="{% url 'blog:post-update' blog.pk %}">Edit this post</a>
+    <a class="btn btn-danger" href="{% url 'blog:post-delete' blog.pk %}">Delete</a>
+    <a class="btn btn-quiet" href="{% url 'blog:post-list' %}">Back to all posts</a>
+  </div>
 {% endblock %}
