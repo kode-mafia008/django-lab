@@ -1,0 +1,16 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Slow down{% endblock %}
+
+{% block content %}
+  <h2>Too many requests</h2>
+
+  <div class="warning-panel">
+    <p>This page allows {{ limit }} views a minute. Try again in {{ retry_after }} second{{ retry_after|pluralize }}.</p>
+    <p>The limit is per account, or per address if you are not signed in.</p>
+  </div>
+
+  <div class="form-actions">
+    <a class="btn btn-quiet" href="{% url 'blog:post-list' %}">Back to all posts</a>
+  </div>
+{% endblock %}
