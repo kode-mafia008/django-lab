@@ -10,7 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
+from datetime import timedelta
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,13 +24,35 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$jxdzx$^#v9turlqq0zu25er()sb!6gm9&-yt@9tg)b&t#d6i9'
+def env_flag(name, default="0"):
+    """Read a boolean from the environment. Anything unlisted is False."""
+    return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+# Settings that differ between a laptop and a server are read from the
+# environment. Nothing secret is written in this file, because this file is in
+# git and git remembers forever.
+DEBUG = env_flag("DJANGO_DEBUG", "1")
+
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    if not DEBUG:
+        # Fail loudly. A missing key that silently falls back to a known value
+        # is worse than a crash: every signature the site makes is forgeable.
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY must be set when DEBUG is off. "
+            "Generate one with: python -c "
+            "'from django.core.management.utils import get_random_secret_key as k; print(k())'"
+        )
+    SECRET_KEY = "django-insecure-dev-only-never-deploy-this-key"
+
+# `ALLOWED_HOSTS` is the Host-header allowlist. Empty + DEBUG=True quietly means
+# localhost only; empty + DEBUG=False rejects every request.
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+    if host.strip()
+]
 
 # Application definition
 
@@ -40,6 +66,7 @@ INSTALLED_APPS = [
 
    # user-defined apps and 3rd party apps
     'blog',
+    'palshare',
     'drf_spectacular',
     'accounts',
     'rest_framework',
@@ -130,17 +157,72 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES':[
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+    # WHO ARE YOU — how a request is turned into `request.user`.
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
+    # WHAT MAY YOU DO — the default answer for every view that does not
+    # override it. Closed by default: a new endpoint is private until its
+    # author decides otherwise.
+    #
+    # This replaces `DjangoModelPermissionsOrAnonReadOnly`, which was pasted in
+    # from the drf-spectacular README and is wrong twice over: it lets anonymous
+    # callers read everything, and it ties writes to `auth_permission` rows, so
+    # a perfectly valid JWT still gets a 403.
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
-    ]
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    # HOW OFTEN — the cheapest defence against credential stuffing and scraping.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        "user": "240/min",
+        # Views that set `throttle_scope = "auth"` — login and register.
+        "auth": "5/min",
+    },
+    # HOW MUCH — an unpaginated list endpoint is a denial-of-service tool that
+    # you built and shipped yourself.
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# Throttle counters live in the cache. The default local-memory cache is
+# per-process, so two gunicorn workers keep two separate counts — real
+# deployments point this at Redis or Memcached.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "django-lab-throttling",
+    }
+}
+
+# Rate limits for the plain-Django HTML pages. DRF's DEFAULT_THROTTLE_RATES
+# cover DRF views only — a function view in blog/views.py is invisible to them,
+# so the pages carry their own table, read by blog/throttling.py.
+PAGE_THROTTLE_RATES = {
+    "blog-detail": "30/min",
+}
+
+
+SIMPLE_JWT = {
+    # Short-lived, because an access token cannot be revoked: until it expires,
+    # whoever holds it is you.
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    # Every refresh issues a new refresh token and blacklists the old one, so a
+    # stolen refresh token is usable at most once before it starts failing.
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    # Tokens are signed with SECRET_KEY. Rotate the key and every token dies.
+    "SIGNING_KEY": SECRET_KEY,
 }
 
 SPECTACULAR_SETTINGS = {
@@ -151,3 +233,34 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
+# Where @login_required sends an anonymous visitor. The default is
+# /accounts/login/, which in this project is the JSON login endpoint — a page
+# no browser can render a form for.
+LOGIN_URL = "/admin/login/"
+LOGIN_REDIRECT_URL = "/blogs/posts/"
+
+# ---------------------------------------------------------------------------
+# Security headers and cookies
+#
+# `python manage.py check --deploy` is the checklist these settings answer to.
+# ---------------------------------------------------------------------------
+
+# Never render this site inside someone else's <iframe> (clickjacking).
+X_FRAME_OPTIONS = "DENY"
+# Do not let a browser second-guess a Content-Type it was given.
+SECURE_CONTENT_TYPE_NOSNIFF = True
+# Do not leak the full URL of this site in the Referer header of outbound links.
+SECURE_REFERRER_POLICY = "same-origin"
+
+if not DEBUG:
+    # Everything below is a no-op on http://127.0.0.1, and mandatory in front
+    # of a real domain.
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365  # one year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # Behind a TLS-terminating proxy, this is how Django learns the original
+    # request was HTTPS. Only set it if the proxy strips a client-sent header.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

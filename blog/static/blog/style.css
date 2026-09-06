@@ -376,3 +376,15 @@ button.btn-danger, .btn-danger {
   td.actions { text-align: left; padding-top: 0.5rem; }
   .form-actions { flex-wrap: wrap; }
 }
+
+/* Day 10 — the nav and the table now say who you are and what you may do. */
+
+.nav-user {
+  margin-left: auto;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.muted {
+  color: #9ca3af;
+}

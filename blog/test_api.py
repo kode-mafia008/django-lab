@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -6,7 +7,20 @@ from rest_framework.test import APITestCase
 from blog.models import Author, Blog
 
 
-class APINamespaceTests(APITestCase):
+class ThrottleFreeAPITestCase(APITestCase):
+    """Throttle counters live in the cache, and the cache outlives a test.
+
+    `TestCase` rolls the database back between tests; it does not roll back
+    Redis, Memcached or local memory. Without this, tests start failing with
+    429s in whatever order happens to be unlucky.
+    """
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+
+
+class APINamespaceTests(ThrottleFreeAPITestCase):
     """The API is addressed independently of the HTML pages."""
 
     def test_router_names_are_under_the_api_namespace(self):
@@ -42,7 +56,7 @@ class APINamespaceTests(APITestCase):
         self.assertTrue(response.data["authors"].endswith("/api/authors/"))
 
 
-class AuthorAPITests(APITestCase):
+class AuthorAPITests(ThrottleFreeAPITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.austen = Author.objects.create(name="Jane Austen", bio="Novelist.")
@@ -70,7 +84,7 @@ class AuthorAPITests(APITestCase):
         self.assertFalse(Author.objects.filter(pk=pk).exists())
 
 
-class BlogAPITests(APITestCase):
+class BlogAPITests(ThrottleFreeAPITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.austen = Author.objects.create(name="Jane Austen")
@@ -111,8 +125,14 @@ class BlogAPITests(APITestCase):
         self.assertIn("author", response.data)
 
     def test_the_api_and_the_html_form_write_to_the_same_table(self):
-        """The split is in the URLs and the views, not in the data."""
+        """The split is in the URLs and the views, not in the data.
+
+        Note the two different logins. `force_authenticate` fakes a DRF
+        credential and the HTML views know nothing about it; `force_login`
+        creates a session cookie, which is what `@login_required` reads.
+        """
         self.client.force_authenticate(user=self.user)
+        self.client.force_login(self.user)
         self.client.post(reverse("api:blog-list"), {
             "title": "Made by the API", "content": "x", "author": self.austen.pk,
         })
