@@ -5,6 +5,8 @@ from .models import Author, Blog
 from rest_framework.permissions import IsAuthenticated
 from django.contrib import messages
 from .forms import BlogForm
+from .permissions import IsOwnerOrReadOnly
+from .throttling import rate_limit
 
 
 def author_list(request):
@@ -25,7 +27,7 @@ class AuthorViewSet(viewsets.ModelViewSet):
 class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
 
 
 # Form views
@@ -33,7 +35,7 @@ def blog_list(request):
     blogs = Blog.objects.select_related("author")
     return render(request, "blog/blog_list.html", {"blogs": blogs})
 
-
+@rate_limit(scope='blog-detail', rate='5/min')
 def blog_detail(request, pk):
     blog = get_object_or_404(Blog.objects.select_related("author"), pk=pk)
     return render(request, "blog/blog_detail.html", {"blog": blog})
