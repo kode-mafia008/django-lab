@@ -1,0 +1,49 @@
+{% comment %}
+  One post, used by the feed, the profile, saved posts and search results.
+  Every list of posts in this app is a `{% templatetag openblock %} for {% templatetag closeblock %}`
+  around this include and nothing else.
+
+  Reads: post.id, post.author.{username,name,avatar}, post.created_at, post.text,
+         post.media (list of {kind, alt}), post.likes, post.comments, post.shares,
+         post.liked, post.saved
+{% endcomment %}
+<article class="post">
+
+  <header class="post-head">
+    <a class="avatar" href="{% url 'palshare:profile' post.author.username %}">{{ post.author.avatar }}</a>
+    <div class="post-who">
+      <a class="post-name" href="{% url 'palshare:profile' post.author.username %}">{{ post.author.name }}</a>
+      <span class="post-meta">@{{ post.author.username }} · {{ post.created_at }}</span>
+    </div>
+    <a class="icon-link post-more" href="{% url 'palshare:post-detail' post.id %}" title="Open post">⋯</a>
+  </header>
+
+  <div class="post-body">
+    <p>{{ post.text|linebreaksbr }}</p>
+  </div>
+
+  {% if post.media %}
+    <div class="post-media {% if post.media|length > 1 %}post-media-grid{% endif %}">
+      {% for item in post.media %}
+        {% comment %}
+          No <img src> yet: the backend has not decided where uploads live.
+          The placeholder keeps the layout honest — same aspect ratio, same
+          rounding — so nothing shifts when real media arrives.
+        {% endcomment %}
+        <div class="media-placeholder" role="img" aria-label="{{ item.alt }}">{{ item.alt }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <footer class="post-actions">
+    <button class="action {% if post.liked %}action-on{% endif %}" type="button">
+      ♥ <span>{{ post.likes }}</span>
+    </button>
+    <a class="action" href="{% url 'palshare:post-detail' post.id %}">💬 <span>{{ post.comments }}</span></a>
+    <button class="action" type="button">↻ <span>{{ post.shares }}</span></button>
+    <button class="action action-end {% if post.saved %}action-on{% endif %}" type="button">
+      {% if post.saved %}★{% else %}☆{% endif %}
+    </button>
+  </footer>
+
+</article>

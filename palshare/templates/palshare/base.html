@@ -1,0 +1,61 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Home{% endblock %} · PalShare</title>
+  <link rel="stylesheet" href="{% static 'palshare/palshare.css' %}">
+</head>
+<body>
+
+{% comment %}
+  The shell. Three columns on a desktop, one column on a phone, and every page
+  in this app fills the middle one.
+
+  Blocks a page may override:
+    title    - the browser tab
+    nav      - the left column (default: the app nav)
+    content  - the middle column. This is the one you want.
+    rail     - the right column (default: weather + AI + suggestions)
+
+  Pages that own the whole width (login, register) extend base_bare.html
+  instead, which is this file without the two side columns.
+
+  Multi-line comments must use {% templatetag openblock %} comment {% templatetag closeblock %},
+  never {% templatetag openbrace %}# ... #{% templatetag closebrace %} — a hash comment is
+  single-line only, and spread over two lines it stops being a comment and starts
+  executing whatever tags are inside it.
+{% endcomment %}
+
+{% include "palshare/partials/_header.html" %}
+
+<div class="shell">
+
+  <aside class="shell-nav">
+    {% block nav %}{% include "palshare/partials/_nav.html" %}{% endblock %}
+  </aside>
+
+  <main class="shell-main">
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <aside class="shell-rail">
+    {% block rail %}
+      {% include "palshare/partials/_widget_weather.html" %}
+      {% include "palshare/partials/_widget_ai.html" %}
+      {% include "palshare/partials/_widget_people.html" %}
+    {% endblock %}
+  </aside>
+
+</div>
+
+</body>
+</html>

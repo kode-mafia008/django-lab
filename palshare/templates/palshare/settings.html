@@ -1,0 +1,39 @@
+{% extends "palshare/base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% comment %}
+  Feature 8's other half: the public/private switch, plus logout.
+  Reads: profile.is_private
+
+  Logout is a POST. A GET logout can be triggered by any <img> tag on any page
+  on the internet, and Django's own admin stopped accepting it for that reason.
+{% endcomment %}
+
+{% block nav %}{% with active="settings" %}{% include "palshare/partials/_nav.html" %}{% endwith %}{% endblock %}
+{% block rail %}{% endblock %}
+
+{% block content %}
+  <h1 class="section-title">Settings</h1>
+
+  <section class="card">
+    <h2 class="section-title">Privacy</h2>
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="field field-checkbox">
+        <input id="id_is_private" type="checkbox" name="is_private" {% if profile.is_private %}checked{% endif %}>
+        <label for="id_is_private">Private account</label>
+      </div>
+      <p class="helptext">Only approved followers can see your posts. Existing followers keep access.</p>
+      <button class="btn btn-primary btn-sm" type="submit">Save</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Account</h2>
+    <p><a href="{% url 'palshare:profile-edit' current_user.username %}">Edit your profile</a></p>
+    <form method="post" action="">
+      {% csrf_token %}
+      <button class="btn btn-danger btn-sm" type="submit" name="logout">Log out</button>
+    </form>
+  </section>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% comment %}
+  Left column. `nav-item-active` is set by each page through the `active`
+  context variable, so there is one nav and no per-page copies of it.
+  Reads: active (string), current_user
+{% endcomment %}
+<nav class="nav">
+  <a class="nav-item {% if active == 'feed' %}nav-item-active{% endif %}" href="{% url 'palshare:feed' %}">Home</a>
+  <a class="nav-item {% if active == 'search' %}nav-item-active{% endif %}" href="{% url 'palshare:search' %}">Search</a>
+  <a class="nav-item {% if active == 'inbox' %}nav-item-active{% endif %}" href="{% url 'palshare:inbox' %}">Inbox</a>
+  <a class="nav-item {% if active == 'saved' %}nav-item-active{% endif %}" href="{% url 'palshare:saved' %}">Saved</a>
+  <a class="nav-item {% if active == 'assistant' %}nav-item-active{% endif %}" href="{% url 'palshare:assistant' %}">Assistant</a>
+  {% if current_user %}
+    <a class="nav-item {% if active == 'profile' %}nav-item-active{% endif %}"
+       href="{% url 'palshare:profile' current_user.username %}">Profile</a>
+    <a class="nav-item {% if active == 'settings' %}nav-item-active{% endif %}" href="{% url 'palshare:settings' %}">Settings</a>
+  {% endif %}
+
+  <a class="btn btn-primary nav-cta" href="{% url 'palshare:post-create' %}">New post</a>
+</nav>

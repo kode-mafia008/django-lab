@@ -1,0 +1,39 @@
+{% extends "palshare/base.html" %}
+{% block title %}Inbox{% endblock %}
+
+{% comment %}
+  Feature 6 (messaging), list half. On a desktop this is the left pane of a
+  two-pane inbox; on a phone it is a page of its own and the thread is the next
+  page. One template, two layouts, no JavaScript.
+
+  Reads: conversations (list of {id, person, last_message, unread, updated_at})
+{% endcomment %}
+
+{% block nav %}{% with active="inbox" %}{% include "palshare/partials/_nav.html" %}{% endwith %}{% endblock %}
+{% block rail %}{% endblock %}
+
+{% block content %}
+  <h1 class="section-title">Inbox</h1>
+
+  {% if conversations %}
+    <ul class="conversation-list card">
+      {% for conversation in conversations %}
+        <li class="conversation {% if conversation.unread %}conversation-unread{% endif %}">
+          <a class="conversation-link" href="{% url 'palshare:thread' conversation.id %}">
+            <span class="avatar">{{ conversation.person.avatar }}</span>
+            <span class="conversation-body">
+              <span class="conversation-head">
+                <span class="user-name">{{ conversation.person.name }}</span>
+                <span class="post-meta">{{ conversation.updated_at }}</span>
+              </span>
+              <span class="conversation-preview">{{ conversation.last_message }}</span>
+            </span>
+            {% if conversation.unread %}<span class="badge">{{ conversation.unread }}</span>{% endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% include "palshare/partials/_empty.html" with empty_title="No messages" empty_text="Start a conversation from someone's profile." %}
+  {% endif %}
+{% endblock %}

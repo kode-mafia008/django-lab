@@ -1,0 +1,32 @@
+{% extends "palshare/base_bare.html" %}
+{% block title %}Log in{% endblock %}
+
+{% comment %}Feature 1. Posts to the real login view once it exists; the form field
+names match django.contrib.auth's AuthenticationForm so no rename is needed.{% endcomment %}
+
+{% block content %}
+  <section class="card auth-card">
+    <h1 class="auth-title">Log in</h1>
+
+    <form method="post" action="">
+      {% csrf_token %}
+      {% if form.errors %}
+        <ul class="errorlist form-errors"><li>That username and password did not match.</li></ul>
+      {% endif %}
+
+      <div class="field">
+        <label for="id_username">Username</label>
+        <input id="id_username" type="text" name="username" autocomplete="username" autofocus required>
+      </div>
+
+      <div class="field">
+        <label for="id_password">Password</label>
+        <input id="id_password" type="password" name="password" autocomplete="current-password" required>
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit">Log in</button>
+    </form>
+
+    <p class="auth-alt">New here? <a href="{% url 'palshare:register' %}">Create an account</a></p>
+  </section>
+{% endblock %}

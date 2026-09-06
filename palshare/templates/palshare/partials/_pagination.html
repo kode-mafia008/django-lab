@@ -1,0 +1,16 @@
+{% comment %}
+  Matches Django's `Paginator` / DRF's PageNumberPagination, so it works
+  whichever side ends up producing the list.
+  Reads: page_obj.{has_previous,has_next,number,paginator.num_pages}
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+  <nav class="pagination">
+    {% if page_obj.has_previous %}
+      <a class="btn btn-quiet btn-sm" href="?page={{ page_obj.previous_page_number }}">Newer</a>
+    {% endif %}
+    <span class="post-meta">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="btn btn-quiet btn-sm" href="?page={{ page_obj.next_page_number }}">Older</a>
+    {% endif %}
+  </nav>
+{% endif %}

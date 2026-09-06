@@ -14,6 +14,9 @@ urlpatterns = [
     path("blogs/", include("blog.urls")),
     path("accounts/" ,include("accounts.urls")),
 
+    # PalShare — templates only, see palshare/urls.py.
+    path("palshare/", include("palshare.urls")),
+
     # JSON API
     path("api/", include("blog.api_urls")),
 

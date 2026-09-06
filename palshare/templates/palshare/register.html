@@ -1,0 +1,32 @@
+{% extends "palshare/base_bare.html" %}
+{% block title %}Create an account{% endblock %}
+
+{% comment %}Feature 1. Field names match the accounts app's RegisterSerializer
+(username, email, password) so the same markup works against the HTML view or
+the JSON endpoint.{% endcomment %}
+
+{% block content %}
+  <section class="card auth-card">
+    <h1 class="auth-title">Create an account</h1>
+
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_r_username">Username</label>
+        <input id="id_r_username" type="text" name="username" autocomplete="username" autofocus required>
+      </div>
+      <div class="field">
+        <label for="id_r_email">Email</label>
+        <input id="id_r_email" type="email" name="email" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="id_r_password">Password</label>
+        <input id="id_r_password" type="password" name="password" autocomplete="new-password" required>
+        <p class="helptext">At least 8 characters, and not one of the common ones.</p>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Create account</button>
+    </form>
+
+    <p class="auth-alt">Already have one? <a href="{% url 'palshare:login' %}">Log in</a></p>
+  </section>
+{% endblock %}

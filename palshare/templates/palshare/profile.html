@@ -1,0 +1,66 @@
+{% extends "palshare/base.html" %}
+{% block title %}{{ profile.name }}{% endblock %}
+
+{% comment %}
+  Features 6 and 8. The private-profile rule lives here and is the one piece of
+  UI logic on this page: if the profile is private and you are not following it
+  and it is not yours, you get the header and nothing else.
+
+  Reads: profile.{username,name,avatar,bio,followers,following,post_count,joined,
+                  is_following,is_private,is_me}, posts (list)
+{% endcomment %}
+
+{% block nav %}{% with active="profile" %}{% include "palshare/partials/_nav.html" %}{% endwith %}{% endblock %}
+
+{% block content %}
+  <header class="card profile-head">
+    <div class="avatar avatar-lg">{{ profile.avatar }}</div>
+
+    <div class="profile-id">
+      <h1 class="profile-name">
+        {{ profile.name }}
+        {% if profile.is_private %}<span class="chip">Private</span>{% endif %}
+      </h1>
+      <p class="post-meta">@{{ profile.username }} · joined {{ profile.joined }}</p>
+      {% if profile.bio %}<p class="profile-bio">{{ profile.bio }}</p>{% endif %}
+
+      <p class="profile-stats">
+        <span><strong>{{ profile.post_count }}</strong> posts</span>
+        <a href="{% url 'palshare:connections' profile.username %}"><strong>{{ profile.followers }}</strong> followers</a>
+        <a href="{% url 'palshare:connections' profile.username %}"><strong>{{ profile.following }}</strong> following</a>
+      </p>
+    </div>
+
+    <div class="profile-actions">
+      {% if profile.is_me %}
+        <a class="btn btn-quiet" href="{% url 'palshare:profile-edit' profile.username %}">Edit profile</a>
+      {% else %}
+        <button class="btn {% if profile.is_following %}btn-quiet{% else %}btn-primary{% endif %}" type="button">
+          {% if profile.is_following %}Following{% else %}Follow{% endif %}
+        </button>
+        <a class="btn btn-quiet" href="{% url 'palshare:inbox' %}">Message</a>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if profile.is_private and not profile.is_following and not profile.is_me %}
+    {% include "palshare/partials/_empty.html" with empty_title="This account is private" empty_text="Follow to see their posts." %}
+  {% else %}
+    <div class="tabs">
+      <a class="tab tab-active" href="?tab=posts">Posts</a>
+      <a class="tab" href="?tab=media">Media</a>
+      <a class="tab" href="?tab=likes">Likes</a>
+    </div>
+
+    {% if posts %}
+      <div class="post-list">
+        {% for post in posts %}
+          {% include "palshare/partials/_post_card.html" %}
+        {% endfor %}
+      </div>
+      {% include "palshare/partials/_pagination.html" %}
+    {% else %}
+      {% include "palshare/partials/_empty.html" with empty_title="No posts yet" %}
+    {% endif %}
+  {% endif %}
+{% endblock %}

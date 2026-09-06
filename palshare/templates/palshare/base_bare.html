@@ -1,0 +1,23 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Home{% endblock %} · PalShare</title>
+  <link rel="stylesheet" href="{% static 'palshare/palshare.css' %}">
+</head>
+<body class="bare">
+
+{% comment %}
+  The signed-out shell: no nav, no rail, one centred card. Login and register
+  extend this. Keeping it separate from base.html is deliberate — a signed-out
+  page that inherits a nav full of links it cannot use is the classic way to
+  leak the shape of an app to people who are not in it.
+{% endcomment %}
+
+<main class="bare-main">
+  {% block content %}{% endblock %}
+</main>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+{% comment %}
+  One person in a list: search results, followers, following, suggestions.
+  Reads: person.{username,name,avatar,bio,is_following}
+{% endcomment %}
+<li class="user-row">
+  <a class="avatar" href="{% url 'palshare:profile' person.username %}">{{ person.avatar }}</a>
+  <div class="user-row-body">
+    <a class="user-name" href="{% url 'palshare:profile' person.username %}">{{ person.name }}</a>
+    <span class="post-meta">@{{ person.username }}</span>
+    {% if person.bio %}<p class="user-bio">{{ person.bio }}</p>{% endif %}
+  </div>
+  <button class="btn btn-sm {% if person.is_following %}btn-quiet{% else %}btn-primary{% endif %}" type="button">
+    {% if person.is_following %}Following{% else %}Follow{% endif %}
+  </button>
+</li>

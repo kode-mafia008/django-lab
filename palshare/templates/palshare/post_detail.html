@@ -1,0 +1,39 @@
+{% extends "palshare/base.html" %}
+{% block title %}{{ post.author.name }}'s post{% endblock %}
+
+{% comment %}
+  Features 3 and 4. One post, then the comment thread.
+  Reads: post, comments (list of comment, each with .replies)
+{% endcomment %}
+
+{% block content %}
+  <p class="crumb"><a href="{% url 'palshare:feed' %}">← Back to feed</a></p>
+
+  {% include "palshare/partials/_post_card.html" %}
+
+  <section class="card">
+    <h2 class="section-title">Comments</h2>
+
+    <form class="composer composer-inline" method="post" action="">
+      {% csrf_token %}
+      <a class="avatar avatar-sm" href="#">{{ current_user.avatar }}</a>
+      <div class="composer-body">
+        <label class="visually-hidden" for="comment-text">Write a comment</label>
+        <textarea id="comment-text" name="text" rows="1" placeholder="Write a comment"></textarea>
+        <div class="composer-actions">
+          <button class="btn btn-primary btn-sm" type="submit">Reply</button>
+        </div>
+      </div>
+    </form>
+
+    {% if comments %}
+      <ul class="comment-list">
+        {% for comment in comments %}
+          {% include "palshare/partials/_comment.html" %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      {% include "palshare/partials/_empty.html" with empty_title="No comments yet" empty_text="Be the first to say something." %}
+    {% endif %}
+  </section>
+{% endblock %}

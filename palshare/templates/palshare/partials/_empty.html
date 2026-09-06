@@ -1,0 +1,11 @@
+{% comment %}
+  The empty state, used by every list in the app.
+  Reads: empty_title, empty_text, empty_action_url, empty_action_label (all optional)
+{% endcomment %}
+<div class="empty">
+  <p class="empty-title">{{ empty_title|default:"Nothing here yet" }}</p>
+  {% if empty_text %}<p>{{ empty_text }}</p>{% endif %}
+  {% if empty_action_url %}
+    <a class="btn btn-primary btn-sm" href="{{ empty_action_url }}">{{ empty_action_label|default:"Get started" }}</a>
+  {% endif %}
+</div>
