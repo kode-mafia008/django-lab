@@ -14,3 +14,11 @@ class AuthorSerializer(serializers.ModelSerializer):
         if not name:
             raise serializers.ValidationError("Name cannot be blank.")
         return name
+
+    def validate_bio(self, value):
+        if value:
+            bio = value.strip()
+            if not bio:
+                raise serializers.ValidationError("Bio cannot be just empty spaces.")
+            return bio
+        return value
