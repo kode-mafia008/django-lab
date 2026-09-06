@@ -3,7 +3,7 @@
   Every list of posts in this app is a `{% templatetag openblock %} for {% templatetag closeblock %}`
   around this include and nothing else.
 
-  Reads: post.id, post.author.{username,name,avatar}, post.created_at, post.text,
+  Reads: post.id, post.author.{username,name,avatar}, post.age, post.text,
          post.media (list of {kind, alt}), post.likes, post.comments, post.shares,
          post.liked, post.saved
 {% endcomment %}
@@ -13,7 +13,7 @@
     <a class="avatar" href="{% url 'palshare:profile' post.author.username %}">{{ post.author.avatar }}</a>
     <div class="post-who">
       <a class="post-name" href="{% url 'palshare:profile' post.author.username %}">{{ post.author.name }}</a>
-      <span class="post-meta">@{{ post.author.username }} · {{ post.created_at }}</span>
+      <span class="post-meta">@{{ post.author.username }} · {{ post.age }}</span>
     </div>
     <a class="icon-link post-more" href="{% url 'palshare:post-detail' post.id %}" title="Open post">⋯</a>
   </header>

@@ -10,10 +10,10 @@ it — only `urls.py` does, on one line per route.
 
 Shape summary
 -------------
-post          id, author, created_at, text, media, likes, comments, shares,
+post          id, author, age, text, media, likes, comments, shares,
               liked, saved
 author/person id, username, name, avatar, bio, followers, following, is_following
-comment       id, author, created_at, text, likes, replies
+comment       id, author, age, text, likes, replies
 conversation  id, person, last_message, unread, updated_at
 message       id, mine, text, sent_at   (pass as `thread_messages`, never
               `messages` — that name belongs to django.contrib.messages)
@@ -61,7 +61,7 @@ POSTS = [
     {
         "id": 1,
         "author": PEOPLE[0],
-        "created_at": "2 hours ago",
+        "age": "2 hours ago",
         "text": "Hour three and PalShare has working authentication. Feed next.",
         "media": [{"kind": "image", "alt": "Screenshot of the login page"}],
         "likes": 24, "comments": 5, "shares": 2,
@@ -70,7 +70,7 @@ POSTS = [
     {
         "id": 2,
         "author": PEOPLE[2],
-        "created_at": "4 hours ago",
+        "age": "4 hours ago",
         "text": "Component library first, pages second. Everything below is one card "
                 "template used eleven times.",
         "media": [],
@@ -80,7 +80,7 @@ POSTS = [
     {
         "id": 3,
         "author": PEOPLE[1],
-        "created_at": "yesterday",
+        "age": "yesterday",
         "text": "Posts API is live: list, detail, create, like, unlike. Contract is in demo.py.",
         "media": [{"kind": "image", "alt": "API response"},
                   {"kind": "image", "alt": "Swagger UI"}],
@@ -90,13 +90,13 @@ POSTS = [
 ]
 
 COMMENTS = [
-    {"id": 1, "author": PEOPLE[3], "created_at": "1 hour ago", "likes": 3,
+    {"id": 1, "author": PEOPLE[3], "age": "1 hour ago", "likes": 3,
      "text": "Tested on mobile — the composer needs more room on small screens.",
      "replies": [
-         {"id": 2, "author": PEOPLE[2], "created_at": "50 minutes ago", "likes": 1,
+         {"id": 2, "author": PEOPLE[2], "age": "50 minutes ago", "likes": 1,
           "text": "Fixed, it stacks under 640px now."},
      ]},
-    {"id": 3, "author": PEOPLE[1], "created_at": "40 minutes ago", "likes": 0,
+    {"id": 3, "author": PEOPLE[1], "age": "40 minutes ago", "likes": 0,
      "text": "Shipping the like endpoint after lunch.", "replies": []},
 ]
 
