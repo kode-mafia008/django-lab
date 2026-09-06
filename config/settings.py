@@ -71,6 +71,11 @@ INSTALLED_APPS = [
     'accounts',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    
+    # Backend integration for palshare
+    'posts',
+    'social',
+    'messaging'
 ]
 
 
