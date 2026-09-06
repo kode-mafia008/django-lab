@@ -151,3 +151,7 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
+PAGE_THROTTLE_RATES = {
+    "blog-detail":"5/min",
+    "blog-list": "10/min",
+}
