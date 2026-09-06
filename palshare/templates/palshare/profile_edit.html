@@ -1,0 +1,34 @@
+{% extends "palshare/base.html" %}
+{% block title %}Edit profile{% endblock %}
+
+{% comment %}Feature 8. Reads: profile{% endcomment %}
+
+{% block content %}
+  <section class="card">
+    <h1 class="section-title">Edit profile</h1>
+
+    <form method="post" action="" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="field">
+        <label for="id_name">Display name</label>
+        <input id="id_name" type="text" name="name" value="{{ profile.name|default:'' }}">
+      </div>
+
+      <div class="field">
+        <label for="id_bio">Bio</label>
+        <textarea id="id_bio" name="bio" rows="4">{{ profile.bio|default:'' }}</textarea>
+      </div>
+
+      <div class="field">
+        <label for="id_avatar">Profile picture</label>
+        <input id="id_avatar" type="file" name="avatar" accept="image/*">
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <a class="btn btn-quiet" href="{% url 'palshare:profile' profile.username %}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

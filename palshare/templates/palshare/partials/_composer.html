@@ -1,0 +1,20 @@
+{% comment %}
+  The inline "what are you working on" box at the top of the feed.
+
+  `action` is passed in by the including page so this one box can post to
+  different endpoints later. It is a real <form> with a real CSRF token: the
+  markup is finished, only the endpoint behind it is not.
+{% endcomment %}
+<form class="composer" method="post" action="{{ action|default:'' }}" enctype="multipart/form-data">
+  {% csrf_token %}
+  <a class="avatar" href="#">{{ current_user.avatar }}</a>
+  <div class="composer-body">
+    <label class="visually-hidden" for="composer-text">Write a post</label>
+    <textarea id="composer-text" name="text" rows="2" placeholder="What are you working on?"></textarea>
+    <div class="composer-actions">
+      <label class="link-button" for="composer-media">📎 Add media</label>
+      <input class="visually-hidden" id="composer-media" type="file" name="media" multiple accept="image/*,video/*">
+      <button class="btn btn-primary btn-sm" type="submit">Post</button>
+    </div>
+  </div>
+</form>

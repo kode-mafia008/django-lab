@@ -7,6 +7,7 @@ tag that was never loaded, or a CSS class that a template stopped emitting.
 
 from django.contrib.staticfiles import finders
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
@@ -19,9 +20,22 @@ class StylesheetTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.austen = Author.objects.create(name="Jane Austen", bio="Novelist.")
+        cls.user = User.objects.create_user("asha", password="lab-passphrase-2026")
         cls.blog = Blog.objects.create(
-            title="A styled post", content="Body.", author=cls.austen, published=True
+            title="A styled post",
+            content="Body.",
+            author=cls.austen,
+            owner=cls.user,
+            published=True,
         )
+
+    def setUp(self):
+        # The edit and delete pages are owner-only since Day 10, so the pages
+        # under test only exist for a logged-in owner.
+        self.client.force_login(self.user)
+        # `blog_detail` is rate-limited; the counter lives in the cache, and
+        # the cache is not rolled back between tests.
+        cache.clear()
 
     def all_pages(self):
         yield reverse("blog:author-list")
@@ -53,7 +67,9 @@ class StylesheetTests(TestCase):
                     self.assertNotIn(token, body)
 
     def test_list_marks_published_and_draft_differently(self):
-        Blog.objects.create(title="A draft post", content="x", author=self.austen)
+        Blog.objects.create(
+            title="A draft post", content="x", author=self.austen, owner=self.user
+        )
         response = self.client.get(reverse("blog:post-list"))
         self.assertContains(response, 'class="badge badge-published"')
         self.assertContains(response, 'class="badge badge-draft"')
@@ -96,6 +112,9 @@ class StylesheetTests(TestCase):
 class StylesheetContentTests(TestCase):
     """Every class a template emits must exist in the stylesheet."""
 
+    def setUp(self):
+        cache.clear()
+
     def test_no_template_class_is_undefined_in_the_css(self):
         import re
         from django.contrib.staticfiles import finders
@@ -103,8 +122,12 @@ class StylesheetContentTests(TestCase):
         css = open(finders.find("blog/style.css")).read()
         defined = set(re.findall(r"\.([A-Za-z][A-Za-z0-9_-]*)", css))
 
+        user = User.objects.create_user("asha", password="lab-passphrase-2026")
+        self.client.force_login(user)
         author = Author.objects.create(name="Jane Austen")
-        blog = Blog.objects.create(title="A styled post", content="x", author=author)
+        blog = Blog.objects.create(
+            title="A styled post", content="x", author=author, owner=user
+        )
         urls = [
             reverse("blog:author-list"),
             reverse("blog:author-detail", args=[author.pk]),

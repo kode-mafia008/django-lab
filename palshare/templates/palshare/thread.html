@@ -1,0 +1,55 @@
+{% extends "palshare/base.html" %}
+{% block title %}{{ conversation.person.name }}{% endblock %}
+
+{% comment %}
+  Feature 6 (messaging), conversation half.
+  Reads: conversation.person, thread_messages (list of {mine, text, sent_at})
+
+  Not `messages`: django.contrib.messages' context processor already owns that
+  name, and base.html renders whatever is in it as flash messages. A chat
+  thread called `messages` renders itself twice, in the wrong place, silently.
+
+  `mine` is a boolean the backend supplies — the template must not work it out
+  by comparing usernames, because the day someone changes their display name is
+  the day every message flips sides.
+{% endcomment %}
+
+{% block nav %}{% with active="inbox" %}{% include "palshare/partials/_nav.html" %}{% endwith %}{% endblock %}
+{% block rail %}{% endblock %}
+
+{% block content %}
+  <header class="thread-head card">
+    <a class="icon-link" href="{% url 'palshare:inbox' %}" title="Back to inbox">←</a>
+    <a class="avatar" href="{% url 'palshare:profile' conversation.person.username %}">{{ conversation.person.avatar }}</a>
+    <div>
+      <a class="user-name" href="{% url 'palshare:profile' conversation.person.username %}">{{ conversation.person.name }}</a>
+      <p class="post-meta">@{{ conversation.person.username }}</p>
+    </div>
+  </header>
+
+  <section class="thread">
+    {% if thread_messages %}
+      <ol class="bubble-list">
+        {% for message in thread_messages %}
+          <li class="bubble {% if message.mine %}bubble-me{% endif %}">
+            <p>{{ message.text }}</p>
+            <p class="bubble-time">{{ message.sent_at }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="empty empty-sm">No messages yet. Say something.</p>
+    {% endif %}
+  </section>
+
+  <form class="composer composer-inline" method="post" action="">
+    {% csrf_token %}
+    <div class="composer-body">
+      <label class="visually-hidden" for="message-text">Message</label>
+      <textarea id="message-text" name="text" rows="1" placeholder="Write a message"></textarea>
+      <div class="composer-actions">
+        <button class="btn btn-primary btn-sm" type="submit">Send</button>
+      </div>
+    </div>
+  </form>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "palshare/base.html" %}
+{% block title %}Home{% endblock %}
+
+{% comment %}
+  Features 2, 3, 4. The whole page is: a composer, a list of post cards, a
+  pager. Nothing here knows what a post *is* — that is `_post_card.html`'s job,
+  which is why the profile, saved and search pages are all this file minus the
+  composer.
+
+  Reads: posts (list), page_obj (optional)
+{% endcomment %}
+
+{% block nav %}{% with active="feed" %}{% include "palshare/partials/_nav.html" %}{% endwith %}{% endblock %}
+
+{% block content %}
+  {% include "palshare/partials/_composer.html" with action="" %}
+
+  <div class="tabs">
+    <a class="tab tab-active" href="?filter=following">Following</a>
+    <a class="tab" href="?filter=latest">Latest</a>
+  </div>
+
+  {% if posts %}
+    <div class="post-list">
+      {% for post in posts %}
+        {% include "palshare/partials/_post_card.html" %}
+      {% endfor %}
+    </div>
+    {% include "palshare/partials/_pagination.html" %}
+  {% else %}
+    {% comment %}`{% templatetag openblock %} url %}` cannot be nested inside `with`, so resolve it first.{% endcomment %}
+    {% url 'palshare:search' as search_url %}
+    {% include "palshare/partials/_empty.html" with empty_title="Your feed is quiet" empty_text="Follow a few people and their posts land here." empty_action_url=search_url empty_action_label="Find people" %}
+  {% endif %}
+{% endblock %}

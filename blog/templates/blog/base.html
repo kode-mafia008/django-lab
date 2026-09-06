@@ -23,7 +23,12 @@
     <ul class="site-nav">
       <li><a href="{% url 'blog:author-list' %}">Authors</a></li>
       <li><a href="{% url 'blog:post-list' %}">Blog posts</a></li>
-      <li><a href="{% url 'blog:post-create' %}">New post</a></li>
+      {% if user.is_authenticated %}
+        <li><a href="{% url 'blog:post-create' %}">New post</a></li>
+        <li class="nav-user">Signed in as {{ user.username }} &middot; <a href="{% url 'admin:index' %}">admin</a></li>
+      {% else %}
+        <li class="nav-user"><a href="{% url 'admin:login' %}?next={{ request.path }}">Log in</a></li>
+      {% endif %}
     </ul>
   </nav>
 

@@ -1,0 +1,20 @@
+{% extends "palshare/base.html" %}
+{% block title %}Saved{% endblock %}
+
+{% comment %}Feature 7. The feed template minus the composer. Reads: posts{% endcomment %}
+
+{% block nav %}{% with active="saved" %}{% include "palshare/partials/_nav.html" %}{% endwith %}{% endblock %}
+
+{% block content %}
+  <h1 class="section-title">Saved posts</h1>
+
+  {% if posts %}
+    <div class="post-list">
+      {% for post in posts %}
+        {% include "palshare/partials/_post_card.html" %}
+      {% endfor %}
+    </div>
+  {% else %}
+    {% include "palshare/partials/_empty.html" with empty_title="Nothing saved" empty_text="Tap the star on a post and it turns up here." %}
+  {% endif %}
+{% endblock %}

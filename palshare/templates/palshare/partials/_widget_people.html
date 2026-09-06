@@ -1,0 +1,15 @@
+{% comment %}
+  Right rail, feature 6. Reads: suggestions (list of person)
+{% endcomment %}
+<section class="widget">
+  <h2 class="widget-title">People to follow</h2>
+  {% if suggestions %}
+    <ul class="user-list user-list-compact">
+      {% for person in suggestions %}
+        {% include "palshare/partials/_user_row.html" %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty empty-sm">No suggestions yet.</p>
+  {% endif %}
+</section>

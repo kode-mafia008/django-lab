@@ -1,0 +1,24 @@
+{% comment %}
+  Top bar: brand, global search, the signed-in user.
+  Reads: current_user (username, name, avatar)
+{% endcomment %}
+<header class="topbar">
+  <a class="brand" href="{% url 'palshare:feed' %}">Pal<span>Share</span></a>
+
+  <form class="searchbar" action="{% url 'palshare:search' %}" method="get" role="search">
+    <label class="visually-hidden" for="q">Search</label>
+    <input id="q" type="search" name="q" placeholder="Search people, posts, tags"
+           value="{{ request.GET.q|default:'' }}" autocomplete="off">
+  </form>
+
+  <nav class="topbar-actions">
+    {% if current_user %}
+      <a class="icon-link" href="{% url 'palshare:inbox' %}" title="Inbox">✉</a>
+      <a class="icon-link" href="{% url 'palshare:saved' %}" title="Saved">☆</a>
+      <a class="avatar avatar-sm" href="{% url 'palshare:profile' current_user.username %}"
+         title="{{ current_user.name }}">{{ current_user.avatar }}</a>
+    {% else %}
+      <a class="btn btn-primary btn-sm" href="{% url 'palshare:login' %}">Log in</a>
+    {% endif %}
+  </nav>
+</header>

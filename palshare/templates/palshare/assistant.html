@@ -1,0 +1,52 @@
+{% extends "palshare/base.html" %}
+{% block title %}Assistant{% endblock %}
+
+{% comment %}
+  Feature 11 — the NVIDIA API, given a page rather than a sidebar box.
+  Reads: turns (list of {role: "you"|"assistant", text}), error (optional)
+
+  Two states matter more than the happy path and both are built: the model is
+  slow (the request is in flight) and the model is down. A demo that has never
+  seen either is a demo that breaks in front of the room.
+{% endcomment %}
+
+{% block nav %}{% with active="assistant" %}{% include "palshare/partials/_nav.html" %}{% endwith %}{% endblock %}
+{% block rail %}{% endblock %}
+
+{% block content %}
+  <h1 class="section-title">Assistant</h1>
+
+  {% if error %}
+    <ul class="errorlist form-errors"><li>{{ error }}</li></ul>
+  {% endif %}
+
+  <section class="card chat">
+    {% if turns %}
+      <ol class="bubble-list">
+        {% for turn in turns %}
+          <li class="bubble {% if turn.role == 'you' %}bubble-me{% endif %}">
+            <p class="bubble-role">{{ turn.role }}</p>
+            <p>{{ turn.text|linebreaksbr }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      {% include "palshare/partials/_empty.html" with empty_title="Ask it something" empty_text="Try: write a caption for this photo." %}
+    {% endif %}
+
+    {% if pending %}
+      <p class="chat-pending">Thinking…</p>
+    {% endif %}
+  </section>
+
+  <form class="composer composer-inline" method="post" action="">
+    {% csrf_token %}
+    <div class="composer-body">
+      <label class="visually-hidden" for="prompt">Prompt</label>
+      <textarea id="prompt" name="prompt" rows="2" placeholder="Ask the assistant"></textarea>
+      <div class="composer-actions">
+        <button class="btn btn-primary btn-sm" type="submit">Send</button>
+      </div>
+    </div>
+  </form>
+{% endblock %}

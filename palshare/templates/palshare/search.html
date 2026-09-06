@@ -1,0 +1,49 @@
+{% extends "palshare/base.html" %}
+{% block title %}Search{% endblock %}
+
+{% comment %}
+  Feature 9. Three result groups from three querysets. The page renders
+  correctly with any of them empty, including all three — which is the state it
+  is in before anyone types anything.
+
+  Reads: query, people (list), posts (list)
+{% endcomment %}
+
+{% block nav %}{% with active="search" %}{% include "palshare/partials/_nav.html" %}{% endwith %}{% endblock %}
+
+{% block content %}
+  <form class="searchbar searchbar-page" action="" method="get" role="search">
+    <label class="visually-hidden" for="page-q">Search</label>
+    <input id="page-q" type="search" name="q" value="{{ query|default:'' }}"
+           placeholder="Search people, posts, tags" autofocus>
+    <button class="btn btn-primary btn-sm" type="submit">Search</button>
+  </form>
+
+  {% if query %}<p class="post-meta">Results for “{{ query }}”</p>{% endif %}
+
+  <section>
+    <h2 class="section-title">People</h2>
+    {% if people %}
+      <ul class="user-list card">
+        {% for person in people %}
+          {% include "palshare/partials/_user_row.html" %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty empty-sm">No people matched.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2 class="section-title">Posts</h2>
+    {% if posts %}
+      <div class="post-list">
+        {% for post in posts %}
+          {% include "palshare/partials/_post_card.html" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty empty-sm">No posts matched.</p>
+    {% endif %}
+  </section>
+{% endblock %}

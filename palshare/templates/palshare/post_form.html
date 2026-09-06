@@ -1,0 +1,41 @@
+{% extends "palshare/base.html" %}
+{% block title %}{{ heading|default:"New post" }}{% endblock %}
+
+{% comment %}
+  Feature 2. One template for create and edit — the difference is the `heading`
+  and whether `post` is in the context, exactly as the blog app does it.
+
+  Reads: heading, post (optional, for edit)
+{% endcomment %}
+
+{% block content %}
+  <section class="card">
+    <h1 class="section-title">{{ heading|default:"New post" }}</h1>
+
+    <form method="post" action="" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="field">
+        <label for="id_text">Post</label>
+        <textarea id="id_text" name="text" rows="6" autofocus
+                  placeholder="What are you working on?">{{ post.text|default:'' }}</textarea>
+      </div>
+
+      <div class="field">
+        <label for="id_media">Images and video</label>
+        <input id="id_media" type="file" name="media" multiple accept="image/*,video/*">
+        <p class="helptext">Up to four files. The backend decides the size limit; the form does not pretend to.</p>
+      </div>
+
+      <div class="field field-checkbox">
+        <input id="id_private" type="checkbox" name="private">
+        <label for="id_private">Followers only</label>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">{% if post %}Save changes{% else %}Post{% endif %}</button>
+        <a class="btn btn-quiet" href="{% url 'palshare:feed' %}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "palshare/base.html" %}
+{% block title %}Connections{% endblock %}
+
+{% comment %}
+  Feature 6. Followers and following are the same list with a different
+  queryset behind them, so they are the same template with a tab.
+  Reads: people (list of person)
+{% endcomment %}
+
+{% block content %}
+  <div class="tabs">
+    <a class="tab tab-active" href="?tab=followers">Followers</a>
+    <a class="tab" href="?tab=following">Following</a>
+  </div>
+
+  {% if people %}
+    <ul class="user-list card">
+      {% for person in people %}
+        {% include "palshare/partials/_user_row.html" %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% include "palshare/partials/_empty.html" with empty_title="Nobody yet" %}
+  {% endif %}
+{% endblock %}

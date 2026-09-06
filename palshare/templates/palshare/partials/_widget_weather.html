@@ -1,0 +1,20 @@
+{% comment %}
+  Right rail, feature 10. Reads: weather.{city,temp_c,summary,icon,updated_at}
+
+  The empty state is not decoration: a third-party API is the one part of this
+  app guaranteed to be down at some point during the demo, and the page has to
+  survive it.
+{% endcomment %}
+<section class="widget">
+  <h2 class="widget-title">Weather</h2>
+  {% if weather %}
+    <p class="weather">
+      <span class="weather-icon">{{ weather.icon }}</span>
+      <span class="weather-temp">{{ weather.temp_c }}°C</span>
+    </p>
+    <p class="widget-line">{{ weather.city }} · {{ weather.summary }}</p>
+    <p class="post-meta">Updated {{ weather.updated_at }}</p>
+  {% else %}
+    <p class="empty empty-sm">Weather is unavailable right now.</p>
+  {% endif %}
+</section>
