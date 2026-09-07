@@ -1240,6 +1240,15 @@ body.bare {
   border-left: 2px solid var(--border);
 }
 
+/* A one-button form must not become a box in the middle of a flex row.
+   `display: contents` drops the form itself from the layout and lets the
+   button take part in `.post-actions` exactly as it did when it was bare. */
+.action-form { display: contents; }
+
+.comment-reply > summary { display: inline-block; margin-top: 0.2rem; font-size: 0.85rem; list-style: none; }
+.comment-reply > summary::-webkit-details-marker { display: none; }
+.comment-reply[open] > summary { color: var(--accent); }
+.comment-reply .composer { margin-top: 0.5rem; }
 
 /* ---- people ------------------------------------------------------------ */
 
