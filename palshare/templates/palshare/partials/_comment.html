@@ -13,9 +13,35 @@
     </p>
     <p>{{ comment.text }}</p>
     <p class="comment-actions">
-      <button class="link-button" type="button">Like{% if comment.likes %} · {{ comment.likes }}{% endif %}</button>
-      <button class="link-button" type="button">Reply</button>
+      <form class="action-form" method="post" action="{% url 'palshare:comment-like' comment.id %}">
+        {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="link-button {% if comment.liked %}action-on{% endif %}" type="submit">
+          {% if comment.liked %}Liked{% else %}Like{% endif %}{% if comment.likes %} · {{ comment.likes }}{% endif %}
+        </button>
+      </form>
     </p>
+
+    {% comment %}
+      Reply is a <details> so the form is one click away without a line of
+      JavaScript. `parent` is what makes it a reply rather than a new comment;
+      the service refuses to nest it past one level.
+    {% endcomment %}
+    <details class="comment-reply">
+      <summary class="link-button">Reply</summary>
+      <form class="composer composer-inline" method="post"
+            action="{% url 'palshare:post-detail' comment.post %}">
+        {% csrf_token %}
+        <input type="hidden" name="parent" value="{{ comment.id }}">
+        <div class="composer-body">
+          <label class="visually-hidden" for="reply-{{ comment.id }}">Write a reply</label>
+          <textarea id="reply-{{ comment.id }}" name="text" rows="1"
+                    placeholder="Write a reply"></textarea>
+          <div class="composer-actions">
+            <button class="btn btn-primary btn-sm" type="submit">Reply</button>
+          </div>
+        </div>
+      </form>
+    </details>
 
     {% if comment.replies %}
       <ul class="comment-list comment-replies">

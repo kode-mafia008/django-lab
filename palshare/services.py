@@ -1,0 +1,162 @@
+"""The writes, written once — the mirror of `queries.py`.
+
+`queries.py` answers "what may this person see". This answers "what happens
+when they tap it", and for the same reason: the page and the API both need
+these rules, and a rule written twice is a rule that will disagree with itself
+by hour nine.
+
+Every function here is **idempotent** and returns the resulting state, never
+the change. Liking twice is not an error, it is a no-op that returns `True`,
+because a double tap on a slow connection is not a mistake the user should
+hear about. The endpoint returns the new state so the UI never has to guess.
+"""
+
+from django.db import IntegrityError, transaction
+from django.db.models import F
+
+from .models import Comment, CommentLike, Conversation, Follow, Like, Post, Save, Share
+
+
+def _bump(owner, field, by):
+    """Move a counter cache, without letting it go negative.
+
+    `F()` rather than `owner.field + 1`: two people liking at the same moment
+    both read the same number and both write it back, and one of the likes
+    disappears. The database can add; let it.
+    """
+    queryset = type(owner).objects.filter(pk=owner.pk)
+    if by < 0:
+        # A counter that has already drifted to zero must not wrap around into
+        # four billion, which is what a PositiveIntegerField does on underflow.
+        queryset = queryset.filter(**{f"{field}__gt": 0})
+    queryset.update(**{field: F(field) + by})
+
+
+def _add(model, owner, field, **lookup):
+    """Create the row unless the unique constraint says it is already there."""
+    try:
+        # The savepoint is load-bearing: a constraint violation marks the whole
+        # surrounding transaction as broken, so without one to roll back to,
+        # catching IntegrityError buys nothing and the next query in the
+        # request dies with TransactionManagementError.
+        with transaction.atomic():
+            model.objects.create(**lookup)
+    except IntegrityError:
+        return False  # the unique constraint did its job
+    _bump(owner, field, 1)
+    return True
+
+
+def _remove(model, owner, field, **lookup):
+    deleted, _ = model.objects.filter(**lookup).delete()
+    if deleted:
+        _bump(owner, field, -1)
+    return bool(deleted)
+
+
+def set_like(user, post, on):
+    if on:
+        _add(Like, post, "like_count", user=user, post=post)
+    else:
+        _remove(Like, post, "like_count", user=user, post=post)
+    return on
+
+
+def set_save(user, post, on):
+    """No counter to move: nothing in the UI renders "saved by 12 people",
+    so a save is a row and nothing else."""
+    if on:
+        try:
+            with transaction.atomic():  # see `_add` for why the savepoint matters
+                Save.objects.create(user=user, post=post)
+        except IntegrityError:
+            pass
+    else:
+        Save.objects.filter(user=user, post=post).delete()
+    return on
+
+
+def set_share(user, post, on):
+    if on:
+        _add(Share, post, "share_count", user=user, post=post)
+    else:
+        _remove(Share, post, "share_count", user=user, post=post)
+    return on
+
+
+def set_comment_like(user, comment, on):
+    if on:
+        _add(CommentLike, comment, "like_count", user=user, comment=comment)
+    else:
+        _remove(CommentLike, comment, "like_count", user=user, comment=comment)
+    return on
+
+
+def set_follow(user, target, on):
+    """`ValueError` rather than letting the CheckConstraint fire.
+
+    The constraint is the guarantee and this is the error message: a database
+    constraint firing is a 500, and a check first turns it into a sentence.
+    You want both — the check for the ninety-nine per cent, the constraint for
+    the race the check cannot see.
+    """
+    if user == target:
+        raise ValueError("You cannot follow yourself.")
+    if on:
+        Follow.objects.get_or_create(follower=user, following=target)
+    else:
+        Follow.objects.filter(follower=user, following=target).delete()
+    return on
+
+
+def toggle_like(user, post):
+    return set_like(user, post, not Like.objects.filter(user=user, post=post).exists())
+
+
+def toggle_save(user, post):
+    return set_save(user, post, not Save.objects.filter(user=user, post=post).exists())
+
+
+def toggle_share(user, post):
+    return set_share(user, post, not Share.objects.filter(user=user, post=post).exists())
+
+
+def toggle_comment_like(user, comment):
+    return set_comment_like(
+        user, comment, not CommentLike.objects.filter(user=user, comment=comment).exists())
+
+
+def toggle_follow(user, target):
+    return set_follow(user, target,
+                      not Follow.objects.filter(follower=user, following=target).exists())
+
+
+def add_comment(user, post, text, parent=None):
+    """One place that knows a comment bumps a counter and a reply cannot nest.
+
+    The model allows any depth — a CheckConstraint cannot walk a tree — so the
+    rule that replies go one level deep lives here and in the serializer.
+    """
+    if parent is not None and parent.parent_id is not None:
+        parent = parent.parent  # a reply to a reply attaches to its top-level comment
+    comment = Comment.objects.create(post=post, author=user, text=text, parent=parent)
+    _bump(post, "comment_count", 1)
+    return comment
+
+
+def conversation_with(me, other):
+    """The one conversation between two people, created on first message.
+
+    Two `filter()` calls, not one with two participants: a single filter on a
+    ManyToMany matches rows with *either* participant. Chaining them means
+    "has me AND has other".
+    """
+    existing = (Conversation.objects
+                .filter(participants=me)
+                .filter(participants=other)
+                .first())
+    if existing:
+        return existing
+    conversation = Conversation.objects.create()
+    conversation.participants.add(me, other)
+    return conversation

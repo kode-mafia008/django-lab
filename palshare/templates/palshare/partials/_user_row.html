@@ -9,7 +9,13 @@
     <span class="post-meta">@{{ person.username }}</span>
     {% if person.bio %}<p class="user-bio">{{ person.bio }}</p>{% endif %}
   </div>
-  <button class="btn btn-sm {% if person.is_following %}btn-quiet{% else %}btn-primary{% endif %}" type="button">
-    {% if person.is_following %}Following{% else %}Follow{% endif %}
-  </button>
+  {% if person.username != current_user.username %}
+    <form method="post" action="{% url 'palshare:user-follow' person.username %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="btn btn-sm {% if person.is_following %}btn-quiet{% else %}btn-primary{% endif %}"
+              type="submit">
+        {% if person.is_following %}Following{% else %}Follow{% endif %}
+      </button>
+    </form>
+  {% endif %}
 </li>
