@@ -11,6 +11,9 @@ the JSON endpoint.{% endcomment %}
 
     <form method="post" action="">
       {% csrf_token %}
+      {% if error %}
+        <ul class="errorlist form-errors"><li>{{ error }}</li></ul>
+      {% endif %}
       <div class="field">
         <label for="id_r_username">Username</label>
         <input id="id_r_username" type="text" name="username" autocomplete="username" autofocus required>
