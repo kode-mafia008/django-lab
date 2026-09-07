@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class Author(models.Model):
     name = models.CharField(max_length=100)
@@ -18,7 +19,14 @@ class Blog(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="blogs")
     published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True) 
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, 
+        related_name="blogs",
+        null=True, blank=True,
+        editable=False,
+
+    )
 
     class Meta:
         db_table = "blogs"
