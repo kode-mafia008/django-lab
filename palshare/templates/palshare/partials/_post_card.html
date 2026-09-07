@@ -35,15 +35,37 @@
     </div>
   {% endif %}
 
+  {% comment %}
+    Three of these are one-button forms rather than JavaScript. A form works
+    with the keyboard, with the back button and with scripting switched off,
+    and `next` brings you back to the page you pressed it on.
+  {% endcomment %}
   <footer class="post-actions">
-    <button class="action {% if post.liked %}action-on{% endif %}" type="button">
-      ♥ <span>{{ post.likes }}</span>
-    </button>
+    <form class="action-form" method="post" action="{% url 'palshare:post-like' post.id %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="action {% if post.liked %}action-on{% endif %}" type="submit"
+              aria-pressed="{% if post.liked %}true{% else %}false{% endif %}"
+              title="{% if post.liked %}Unlike{% else %}Like{% endif %}">
+        ♥ <span>{{ post.likes }}</span>
+      </button>
+    </form>
     <a class="action" href="{% url 'palshare:post-detail' post.id %}">💬 <span>{{ post.comments }}</span></a>
-    <button class="action" type="button">↻ <span>{{ post.shares }}</span></button>
-    <button class="action action-end {% if post.saved %}action-on{% endif %}" type="button">
-      {% if post.saved %}★{% else %}☆{% endif %}
-    </button>
+    <form class="action-form" method="post" action="{% url 'palshare:post-share' post.id %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="action {% if post.shared %}action-on{% endif %}" type="submit"
+              aria-pressed="{% if post.shared %}true{% else %}false{% endif %}"
+              title="{% if post.shared %}Undo share{% else %}Share{% endif %}">
+        ↻ <span>{{ post.shares }}</span>
+      </button>
+    </form>
+    <form class="action-form" method="post" action="{% url 'palshare:post-save' post.id %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="action action-end {% if post.saved %}action-on{% endif %}" type="submit"
+              aria-pressed="{% if post.saved %}true{% else %}false{% endif %}"
+              title="{% if post.saved %}Remove from saved{% else %}Save{% endif %}">
+        {% if post.saved %}★{% else %}☆{% endif %}
+      </button>
+    </form>
   </footer>
 
 </article>
