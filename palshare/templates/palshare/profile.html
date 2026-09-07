@@ -35,10 +35,21 @@
       {% if profile.is_me %}
         <a class="btn btn-quiet" href="{% url 'palshare:profile-edit' profile.username %}">Edit profile</a>
       {% else %}
-        <button class="btn {% if profile.is_following %}btn-quiet{% else %}btn-primary{% endif %}" type="button">
-          {% if profile.is_following %}Following{% else %}Follow{% endif %}
-        </button>
-        <a class="btn btn-quiet" href="{% url 'palshare:inbox' %}">Message</a>
+        <form method="post" action="{% url 'palshare:user-follow' profile.username %}">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="btn {% if profile.is_following %}btn-quiet{% else %}btn-primary{% endif %}"
+                  type="submit">
+            {% if profile.is_following %}Following{% else %}Follow{% endif %}
+          </button>
+        </form>
+        {% comment %}
+          A POST, not a link: opening a conversation creates a row the first
+          time, and a GET that writes is a GET any crawler can trigger.
+        {% endcomment %}
+        <form method="post" action="{% url 'palshare:message-user' profile.username %}">
+          {% csrf_token %}
+          <button class="btn btn-quiet" type="submit">Message</button>
+        </form>
       {% endif %}
     </div>
   </header>

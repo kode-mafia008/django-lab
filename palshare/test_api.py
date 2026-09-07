@@ -73,6 +73,31 @@ class PostApiTests(ApiTestCase):
                              {"saved": True})
         self.assertEqual(Save.objects.filter(post=post).count(), 1)
 
+    def test_share_and_unshare_move_the_counter(self):
+        post = Post.objects.create(author=self.asha, text="share me")
+        for _ in range(3):
+            self.assertEqual(self.client.post(f"/api/palshare/posts/{post.pk}/share/").data,
+                             {"shared": True})
+        post.refresh_from_db()
+        self.assertEqual(post.share_count, 1)
+        self.client.post(f"/api/palshare/posts/{post.pk}/unshare/")
+        post.refresh_from_db()
+        self.assertEqual(post.share_count, 0)
+
+    def test_the_page_and_the_api_agree_after_a_button_press(self):
+        """The HTML action views and the API actions call the same service, so
+        a like pressed on the page must be a like the API reports."""
+        post = Post.objects.create(author=self.asha, text="pressed on the page")
+        page = APIClient()
+        page.login(username="asha", password=PASSWORD)
+        page.post(f"/palshare/posts/{post.pk}/like/", {"next": "/palshare/"})
+
+        body = self.client.get(f"/api/palshare/posts/{post.pk}/").data
+        self.assertEqual(body["likes"], 1)
+        page_data = page.get(f"/palshare/posts/{post.pk}/").context["post"]
+        self.assertEqual(page_data["likes"], 1)
+        self.assertTrue(page_data["liked"])
+
     def test_a_followers_only_post_is_invisible_until_you_follow(self):
         Post.objects.create(author=self.asha, text="public")
         Post.objects.create(author=self.asha, text="just for my followers",

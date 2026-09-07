@@ -16,21 +16,32 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import F
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.template.defaultfilters import date as date_filter
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST, require_http_methods
 
 from .integrations import ask_assistant, current_weather
-from .models import Comment, Conversation, Message, Post, Profile
+from .models import Comment, Conversation, Follow, Message, Post, Profile
+from .services import (
+    add_comment,
+    conversation_with,
+    toggle_comment_like,
+    toggle_follow,
+    toggle_like,
+    toggle_save,
+    toggle_share,
+)
 from .queries import (
     conversations_for,
     may_see_posts,
     people,
     saved_posts,
     search as search_query,
+    visible_comments,
     suggestions_for,
     visible_posts,
 )
@@ -49,6 +60,20 @@ PAGE_SIZE = 20
 # `@login_required` alone would send people to `settings.LOGIN_URL`, which is
 # the admin login — a different app's front door. PalShare has its own.
 signed_in = login_required(login_url="palshare:login")
+
+
+def back(request, fallback):
+    """Return to the page the button was on.
+
+    `url_has_allowed_host_and_scheme` is not optional: without it, `?next=` is
+    an open redirect, and an open redirect on a login-walled page is how a
+    phishing link borrows your domain.
+    """
+    target = request.POST.get("next") or request.META.get("HTTP_REFERER", "")
+    if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()},
+                                                  require_https=request.is_secure()):
+        return redirect(target)
+    return redirect(fallback)
 
 
 def profile_of(user):
@@ -149,7 +174,10 @@ def feed(request):
 
     posts = visible_posts(request.user)
     if request.GET.get("filter") == "following":
-        posts = posts.exclude(author=request.user)
+        # The tab says Following, so it means posts by people you follow —
+        # not "everything except mine", which is what this used to do.
+        posts = posts.filter(author__in=Follow.objects.filter(follower=request.user)
+                             .values("following"))
     return render(request, "palshare/feed.html",
                   shell(request, active="feed", **posts_page(request, posts)))
 
@@ -203,16 +231,16 @@ def post_detail(request, pk):
     if request.method == "POST":
         text = request.POST.get("text", "").strip()
         if text:
-            Comment.objects.create(post=post, author=request.user, text=text)
-            # `F()`, not `post.comment_count + 1`: two people commenting at
-            # once both read the same number and both write it back.
-            Post.objects.filter(pk=post.pk).update(comment_count=F("comment_count") + 1)
+            # `parent` arrives from the Reply form under each comment. The
+            # service refuses to nest past one level; the model cannot.
+            parent = None
+            parent_id = request.POST.get("parent")
+            if parent_id:
+                parent = get_object_or_404(Comment, pk=parent_id, post=post)
+            add_comment(request.user, post, text, parent=parent)
         return redirect("palshare:post-detail", pk=post.pk)
 
-    comments = (Comment.objects
-                .filter(post=post, parent__isnull=True)
-                .select_related("author")
-                .prefetch_related("replies__author"))
+    comments = visible_comments(request.user, post)
     return render(request, "palshare/post_detail.html", shell(
         request,
         post=PostSerializer(post, context={"request": request}).data,
@@ -388,6 +416,69 @@ def assistant(request):
 
     return render(request, "palshare/assistant.html",
                   shell(request, active="assistant", turns=turns, error=error))
+
+
+# --- the one-row-or-none actions -----------------------------------------
+#
+# Seven controls in the shell were `<button type="button">` with nothing behind
+# them. They are real forms now, and each one posts here, flips a row and
+# returns you to the page you were on. No JavaScript: a form works with the
+# keyboard, with the back button, and with JavaScript switched off, and the
+# whole app already reloads on every write anyway.
+
+@signed_in
+@require_POST
+def post_like(request, pk):
+    toggle_like(request.user, get_object_or_404(visible_posts(request.user), pk=pk))
+    return back(request, "palshare:feed")
+
+
+@signed_in
+@require_POST
+def post_save(request, pk):
+    toggle_save(request.user, get_object_or_404(visible_posts(request.user), pk=pk))
+    return back(request, "palshare:feed")
+
+
+@signed_in
+@require_POST
+def post_share(request, pk):
+    toggle_share(request.user, get_object_or_404(visible_posts(request.user), pk=pk))
+    return back(request, "palshare:feed")
+
+
+@signed_in
+@require_POST
+def comment_like(request, pk):
+    comment = get_object_or_404(Comment, pk=pk)
+    # You may only like a comment on a post you are allowed to read.
+    get_object_or_404(visible_posts(request.user), pk=comment.post_id)
+    toggle_comment_like(request.user, comment)
+    return back(request, reverse("palshare:post-detail", args=[comment.post_id]))
+
+
+@signed_in
+@require_POST
+def user_follow(request, username):
+    target = get_object_or_404(User, username=username)
+    try:
+        toggle_follow(request.user, target)
+    except ValueError as error:
+        messages.error(request, str(error))
+    return back(request, reverse("palshare:profile", args=[target.username]))
+
+
+@signed_in
+@require_POST
+def message_user(request, username):
+    """The profile's Message button. Opens the one conversation with that
+    person, creating it on first use."""
+    other = get_object_or_404(User, username=username)
+    if other == request.user:
+        messages.error(request, "You cannot message yourself.")
+        return redirect("palshare:inbox")
+    conversation = conversation_with(request.user, other)
+    return redirect("palshare:thread", pk=conversation.pk)
 
 
 # --- settings -------------------------------------------------------------

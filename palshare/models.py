@@ -37,6 +37,7 @@ class Post(models.Model):
     # endpoints, never by hand.
     like_count = models.PositiveIntegerField(default=0)
     comment_count = models.PositiveIntegerField(default=0)
+    share_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["-created_at"]
@@ -64,6 +65,7 @@ class Comment(models.Model):
                                related_name="replies")
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    like_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["created_at"]
@@ -89,6 +91,36 @@ class Save(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["user", "post"], name="one_save_per_user")]
+
+
+class Share(models.Model):
+    """The third of the three one-row-or-none features.
+
+    `_post_card.html` has been rendering a share count since hour one and
+    nothing was storing it, so the number was a literal zero. One share per
+    person per post, no quote-post semantics.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="shares")
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="shares")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "post"], name="one_share_per_user")]
+
+
+class CommentLike(models.Model):
+    """Same shape again, one level down. `_comment.html` has a Like button."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="comment_likes")
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="likes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "comment"],
+                                               name="one_comment_like_per_user")]
 
 
 class Follow(models.Model):

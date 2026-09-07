@@ -241,6 +241,10 @@ body.bare { display: grid; place-items: center; min-height: 100vh; }
 .action:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
 .action-on { color: var(--accent); font-weight: 600; }
 .action-end { margin-left: auto; }
+/* A one-button form must not become a box in the middle of a flex row.
+   `display: contents` drops the form itself from the layout and lets the
+   button take part in `.post-actions` exactly as it did when it was bare. */
+.action-form { display: contents; }
 
 /* ---- comments ---------------------------------------------------------- */
 
@@ -251,6 +255,10 @@ body.bare { display: grid; place-items: center; min-height: 100vh; }
 .comment-name { font-weight: 600; }
 .comment-actions { display: flex; gap: 0.9rem; margin: 0.2rem 0 0; font-size: 0.85rem; }
 .comment-replies { margin-left: 0.5rem; padding-left: 0.9rem; border-left: 2px solid var(--border); }
+.comment-reply > summary { display: inline-block; margin-top: 0.2rem; font-size: 0.85rem; list-style: none; }
+.comment-reply > summary::-webkit-details-marker { display: none; }
+.comment-reply[open] > summary { color: var(--accent); }
+.comment-reply .composer { margin-top: 0.5rem; }
 
 /* ---- people ------------------------------------------------------------ */
 

@@ -28,10 +28,19 @@ urlpatterns = [
     path("posts/<int:pk>/", views.post_detail, name="post-detail"),
     path("posts/<int:pk>/edit/", views.post_edit, name="post-edit"),
 
+    # The one-row-or-none actions. POST only, and every one of them returns
+    # you to the page whose button you pressed.
+    path("posts/<int:pk>/like/", views.post_like, name="post-like"),
+    path("posts/<int:pk>/save/", views.post_save, name="post-save"),
+    path("posts/<int:pk>/share/", views.post_share, name="post-share"),
+    path("comments/<int:pk>/like/", views.comment_like, name="comment-like"),
+
     # Profile and the follow graph
     path("u/<str:username>/", views.profile, name="profile"),
     path("u/<str:username>/edit/", views.profile_edit, name="profile-edit"),
     path("u/<str:username>/connections/", views.connections, name="connections"),
+    path("u/<str:username>/follow/", views.user_follow, name="user-follow"),
+    path("u/<str:username>/message/", views.message_user, name="message-user"),
 
     # Saved, search
     path("saved/", views.saved, name="saved"),

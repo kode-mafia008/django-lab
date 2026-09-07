@@ -123,9 +123,8 @@ class PostSerializer(serializers.ModelSerializer):
     # nothing but rows.
     liked = serializers.BooleanField(read_only=True, default=False)
     saved = serializers.BooleanField(read_only=True, default=False)
-    # Sharing is in `demo.py` and on the card, and is not a feature yet. Zero
-    # is the honest answer; a field that quietly disappears is not.
-    shares = serializers.IntegerField(read_only=True, default=0)
+    shares = serializers.IntegerField(source="share_count", read_only=True)
+    shared = serializers.BooleanField(read_only=True, default=False)
     # `created_at` is a timestamp for machines; `age` is a string for people.
     # One name for both is how a UI ends up printing an ISO 8601 string at a
     # human.
@@ -134,7 +133,7 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ["id", "author", "text", "media", "followers_only",
-                  "likes", "comments", "shares", "liked", "saved",
+                  "likes", "comments", "shares", "liked", "saved", "shared",
                   "age", "created_at", "updated_at"]
         # Everything the server owns. `author` is not in this list because it
         # is not in `fields` as a writable field at all — it is nested and
@@ -149,13 +148,13 @@ class CommentSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
     age = serializers.SerializerMethodField()
     replies = serializers.SerializerMethodField()
-    # Comment likes are on the card and not in the schema. Same call as
-    # `shares`: render the zero, do not pretend the field is not read.
-    likes = serializers.IntegerField(read_only=True, default=0)
+    likes = serializers.IntegerField(source="like_count", read_only=True)
+    # Read off the annotation `visible_comments()` adds, like the feed's.
+    liked = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = Comment
-        fields = ["id", "author", "text", "age", "likes", "parent", "replies"]
+        fields = ["id", "post", "author", "text", "age", "likes", "liked", "parent", "replies"]
         read_only_fields = ["id"]
 
     def get_age(self, comment) -> str:
