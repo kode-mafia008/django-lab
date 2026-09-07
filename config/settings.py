@@ -237,6 +237,12 @@ SPECTACULAR_SETTINGS = {
 # /accounts/login/, which in this project is the JSON login endpoint — a page
 # no browser can render a form for.
 LOGIN_URL = "/admin/login/"
+
+# Third-party API keys, read from the environment like everything else secret.
+# Both are optional: `palshare/integrations.py` returns None without them and
+# the widgets render their empty states. See .env.example.
+WEATHER_API_KEY = os.environ.get("WEATHER_API_KEY", "")
+NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
 LOGIN_REDIRECT_URL = "/blogs/posts/"
 
 # ---------------------------------------------------------------------------
