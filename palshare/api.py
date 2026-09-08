@@ -5,7 +5,8 @@ what is written once and applied twice. That is the whole point of Part 4.
 """
 
 from django.contrib.auth.models import User
-from rest_framework import status, viewsets
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,7 +15,8 @@ from .models import Post
 from .permissions import IsAuthorOrReadOnly
 from .queries import people, visible_posts
 from .serializers import PersonSerializer, PostSerializer
-from .services import set_follow, set_like, set_save, set_share
+from .services import (reaction_summary, set_follow, set_like, set_reaction,
+                       set_save, set_share)
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -24,6 +26,21 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.none()
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
+
+    # Liking someone else's post is the entire point of liking. Applying
+    # `IsAuthorOrReadOnly` to the whole viewset made every interaction below a
+    # 403 unless you were reacting to yourself — the HTML pages had no such
+    # rule, so the page and the API disagreed about a write, which is the one
+    # thing `services.py` exists to prevent.
+    #
+    # `IsAuthorOrReadOnly` is about *editing a row*, so it applies to the three
+    # actions that edit a row and to nothing else.
+    INTERACTIONS = {"like", "unlike", "save", "unsave", "share", "unshare", "react"}
+
+    def get_permissions(self):
+        if self.action in self.INTERACTIONS:
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     def get_queryset(self):
         return visible_posts(self.request.user)
@@ -67,6 +84,25 @@ class PostViewSet(viewsets.ModelViewSet):
     def unshare(self, request, pk=None):
         set_share(request.user, self.get_object(), False)
         return Response({"shared": False}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"])
+    def react(self, request, pk=None):
+        """`{"emoji": "\U0001f44d"}` sets it, the same emoji again clears it,
+        and `{"emoji": null}` clears it outright — the page's three behaviours,
+        because both call the same `set_reaction`.
+        """
+        post = self.get_object()
+        try:
+            emoji = set_reaction(request.user, post, request.data.get("emoji") or None)
+        except DjangoValidationError as exc:
+            # Django's ValidationError is not DRF's, and uncaught it is a 500
+            # where a 400 belongs.
+            raise serializers.ValidationError({"emoji": exc.messages})
+        # Refetched, because `reaction_summary` reads the prefetch and the row
+        # it is counting was just written.
+        post = self.get_queryset().get(pk=post.pk)
+        return Response({"emoji": emoji, "reactions": reaction_summary(post, request.user)},
+                        status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):

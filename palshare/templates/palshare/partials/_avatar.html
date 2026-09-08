@@ -1,0 +1,15 @@
+{% comment %}
+  One person's avatar, everywhere one appears.
+
+  The picture when they have uploaded one, the initial when they have not —
+  and that second case is not a fallback, it is what most rows render. Written
+  once as a partial because the same two-line `{% if %}` was about to be copied
+  into nine templates, and the ninth is where they start to differ.
+
+  Reads: who.{avatar, avatar_url, name}, size (optional css modifier)
+{% endcomment %}
+{% if who.avatar_url %}
+  <img class="avatar-img" src="{{ who.avatar_url }}" alt="{{ who.name }}" loading="lazy">
+{% else %}
+  {{ who.avatar }}
+{% endif %}

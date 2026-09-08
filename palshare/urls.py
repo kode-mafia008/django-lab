@@ -34,6 +34,7 @@ urlpatterns = [
     path("posts/<int:pk>/save/", views.post_save, name="post-save"),
     path("posts/<int:pk>/share/", views.post_share, name="post-share"),
     path("comments/<int:pk>/like/", views.comment_like, name="comment-like"),
+    path("posts/<int:pk>/react/", views.post_react, name="post-react"),
 
     # Profile and the follow graph
     path("u/<str:username>/", views.profile, name="profile"),
@@ -49,6 +50,8 @@ urlpatterns = [
     # Messaging
     path("inbox/", views.inbox, name="inbox"),
     path("inbox/<int:pk>/", views.thread, name="thread"),
+    path("messages/<int:pk>/edit/", views.message_edit, name="message-edit"),
+    path("messages/<int:pk>/unsend/", views.message_unsend, name="message-unsend"),
 
     # Integrations
     path("assistant/", views.assistant, name="assistant"),

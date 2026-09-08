@@ -4,7 +4,7 @@
   Reads: comment.{id,author,age,text,likes,replies}
 {% endcomment %}
 <li class="comment">
-  <a class="avatar avatar-sm" href="{% url 'palshare:profile' comment.author.username %}">{{ comment.author.avatar }}</a>
+  <a class="avatar avatar-sm" href="{% url 'palshare:profile' comment.author.username %}">{% include "palshare/partials/_avatar.html" with who=comment.author %}</a>
 
   <div class="comment-body">
     <p class="comment-head">
@@ -47,7 +47,7 @@
       <ul class="comment-list comment-replies">
         {% for reply in comment.replies %}
           <li class="comment">
-            <a class="avatar avatar-sm" href="{% url 'palshare:profile' reply.author.username %}">{{ reply.author.avatar }}</a>
+            <a class="avatar avatar-sm" href="{% url 'palshare:profile' reply.author.username %}">{% include "palshare/partials/_avatar.html" with who=reply.author %}</a>
             <div class="comment-body">
               <p class="comment-head">
                 <span class="comment-name">{{ reply.author.name }}</span>

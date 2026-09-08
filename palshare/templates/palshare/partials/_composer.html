@@ -7,11 +7,12 @@
 {% endcomment %}
 <form class="composer" method="post" action="{{ action|default:'' }}" enctype="multipart/form-data">
   {% csrf_token %}
-  <a class="avatar" href="#">{{ current_user.avatar }}</a>
+  <a class="avatar" href="{% url 'palshare:profile' current_user.username %}">{% include "palshare/partials/_avatar.html" with who=current_user %}</a>
   <div class="composer-body">
     <label class="visually-hidden" for="composer-text">Write a post</label>
     <textarea id="composer-text" name="text" rows="2" placeholder="What are you working on?"></textarea>
     <div class="composer-actions">
+      {% include "palshare/partials/_emoji_picker.html" with target="composer-text" %}
       <label class="link-button" for="composer-media">📎 Add media</label>
       <input class="visually-hidden" id="composer-media" type="file" name="media" multiple accept="image/*,video/*">
       <button class="btn btn-primary btn-sm" type="submit">Post</button>

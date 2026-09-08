@@ -10,12 +10,15 @@ API cannot drift apart.
 """
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.template.defaultfilters import date as date_filter
 from django.utils.timesince import timesince
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from .models import Comment, Media, Message, Post
+from .services import attach_media, reaction_summary
 
 
 def initial(user):
@@ -46,16 +49,34 @@ class AuthorSerializer(serializers.ModelSerializer):
 
     name = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
+    # The letter stays. `avatar_url` is the picture when there is one, and the
+    # templates fall back to the letter when there is not — which is most
+    # people, most of the time, and is a state the shell was designed around.
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "name", "avatar"]
+        fields = ["id", "username", "name", "avatar", "avatar_url"]
 
     def get_name(self, user) -> str:
         return display_name(user)
 
     def get_avatar(self, user) -> str:
         return initial(user)
+
+    def get_avatar_url(self, user) -> str:
+        """None-safe three times over: no Profile row, no file, no MEDIA_URL.
+
+        `user.profile` raises for anyone whose row was created outside this app
+        — the admin, `createsuperuser`, a fixture — and that is most of the
+        users in a workshop database.
+        """
+        profile = getattr(user, "profile", None)
+        avatar = getattr(profile, "avatar", None)
+        if not avatar:
+            return ""
+        request = self.context.get("request")
+        return request.build_absolute_uri(avatar.url) if request else avatar.url
 
 
 # The component name is inherited along with everything else, so each subclass
@@ -129,11 +150,23 @@ class PostSerializer(serializers.ModelSerializer):
     # One name for both is how a UI ends up printing an ISO 8601 string at a
     # human.
     age = serializers.SerializerMethodField()
+    # Read off the `reactions` prefetch, not queried — see `reaction_summary`.
+    reactions = serializers.SerializerMethodField()
+    # `media` above is the output shape and is read-only, so uploading needs a
+    # second field. The name differs from the HTML form's `media` on purpose:
+    # one is a list of stored rows, the other is a list of incoming files, and
+    # giving both the same name is how a serializer ends up trying to write to
+    # its own output. Send it as multipart, one `upload` part per file.
+    upload = serializers.ListField(
+        child=serializers.FileField(), write_only=True, required=False,
+        help_text="Up to four image or video files, sent as multipart/form-data.",
+    )
 
     class Meta:
         model = Post
-        fields = ["id", "author", "text", "media", "followers_only",
-                  "likes", "comments", "shares", "liked", "saved", "shared",
+        fields = ["id", "author", "text", "media", "upload", "followers_only",
+                  "likes", "comments", "shares", "reactions",
+                  "liked", "saved", "shared",
                   "age", "created_at", "updated_at"]
         # Everything the server owns. `author` is not in this list because it
         # is not in `fields` as a writable field at all — it is nested and
@@ -142,6 +175,36 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_age(self, post) -> str:
         return f"{timesince(post.created_at)} ago"
+
+    def get_reactions(self, post) -> list:
+        request = self.context.get("request")
+        return reaction_summary(post, request.user if request else None)
+
+    def create(self, validated_data):
+        uploads = validated_data.pop("upload", [])
+        with transaction.atomic():
+            post = super().create(validated_data)
+            self._attach(post, uploads)
+        return post
+
+    def update(self, instance, validated_data):
+        uploads = validated_data.pop("upload", [])
+        with transaction.atomic():
+            post = super().update(instance, validated_data)
+            self._attach(post, uploads)
+        return post
+
+    def _attach(self, post, uploads):
+        """Same write rule as the page, translated into DRF's error type.
+
+        `services.attach_media` raises Django's ValidationError, which DRF does
+        not recognise — uncaught, a rejected file is a 500 instead of the 400 it
+        is. The rule itself is not restated here, only the exception.
+        """
+        try:
+            attach_media(post, uploads)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"upload": exc.messages})
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -184,10 +247,15 @@ class MessageSerializer(serializers.ModelSerializer):
 
     mine = serializers.SerializerMethodField()
     sent_at = serializers.SerializerMethodField()
+    # `deleted` and `edited` are booleans for the template, not timestamps:
+    # the thread shows a state, not a date, and `{% if message.deleted %}`
+    # reads better than a null check on a formatted string.
+    deleted = serializers.BooleanField(source="is_deleted", read_only=True)
+    edited = serializers.BooleanField(source="is_edited", read_only=True)
 
     class Meta:
         model = Message
-        fields = ["id", "mine", "text", "sent_at"]
+        fields = ["id", "mine", "text", "sent_at", "deleted", "edited"]
 
     def get_mine(self, message) -> bool:
         request = self.context.get("request")

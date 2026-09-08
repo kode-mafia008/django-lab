@@ -16,7 +16,7 @@
       <a class="icon-link" href="{% url 'palshare:inbox' %}" title="Inbox">✉</a>
       <a class="icon-link" href="{% url 'palshare:saved' %}" title="Saved">☆</a>
       <a class="avatar avatar-sm" href="{% url 'palshare:profile' current_user.username %}"
-         title="{{ current_user.name }}">{{ current_user.avatar }}</a>
+         title="{{ current_user.name }}">{% include "palshare/partials/_avatar.html" with who=current_user %}</a>
     {% else %}
       <a class="btn btn-primary btn-sm" href="{% url 'palshare:login' %}">Log in</a>
     {% endif %}

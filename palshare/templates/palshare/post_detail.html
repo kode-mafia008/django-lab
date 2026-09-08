@@ -16,10 +16,11 @@
 
     <form class="composer composer-inline" method="post" action="">
       {% csrf_token %}
-      <a class="avatar avatar-sm" href="#">{{ current_user.avatar }}</a>
+      <a class="avatar avatar-sm" href="{% url 'palshare:profile' current_user.username %}">{% include "palshare/partials/_avatar.html" with who=current_user %}</a>
       <div class="composer-body">
         <label class="visually-hidden" for="comment-text">Write a comment</label>
         <textarea id="comment-text" name="text" rows="1" placeholder="Write a comment"></textarea>
+        {% include "palshare/partials/_emoji_picker.html" with target="comment-text" %}
         <div class="composer-actions">
           <button class="btn btn-primary btn-sm" type="submit">Reply</button>
         </div>

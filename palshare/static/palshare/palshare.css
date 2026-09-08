@@ -154,8 +154,16 @@ body.bare { display: grid; place-items: center; min-height: 100vh; }
   font-weight: 700;
 }
 .avatar:hover { text-decoration: none; }
+/* An uploaded picture fills the same circle the initial sits in, so a row is
+   the same height whether or not anyone has set one. `overflow: hidden` on the
+   parent would clip nothing — the image is what needs the radius. */
+.avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 .avatar-sm { width: 30px; height: 30px; font-size: 0.8rem; }
 .avatar-lg { width: 72px; height: 72px; font-size: 1.6rem; }
+
+/* The picture you already have, on the form that changes it. Without it the
+   only way to know whether an upload worked is to leave the page. */
+.avatar-preview { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.4rem; }
 
 .chip {
   padding: 0.1rem 0.5rem; border-radius: 999px;
@@ -231,6 +239,38 @@ body.bare { display: grid; place-items: center; min-height: 100vh; }
   background: var(--surface-2); color: var(--muted);
   font-size: 0.85rem; text-align: center;
 }
+/* Same box as the placeholder it replaces, so a card does not change shape
+   when a real file arrives. `object-fit: cover` because a feed of images at
+   their own aspect ratios is a feed that jumps as it loads. */
+.media-item {
+  display: block; width: 100%; max-height: 480px; min-height: 180px;
+  object-fit: cover; background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.post-media-grid .media-item { max-height: 240px; }
+
+/* ---- reactions and the emoji picker ------------------------------------ */
+
+.reactions { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0.4rem 0.6rem 0; }
+.reaction {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.2rem 0.5rem; border: 1px solid var(--border);
+  border-radius: 999px; background: var(--surface-2);
+  font: inherit; font-size: 0.9rem; line-height: 1.4; cursor: pointer;
+}
+.reaction:hover { border-color: var(--accent); }
+/* The one you picked, and it has to read as picked without relying on colour
+   alone — the border weight carries it for anyone who cannot see the accent. */
+.reaction-on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
+.reaction-count { font-size: 0.8rem; color: var(--muted); }
+.reaction-on .reaction-count { color: var(--accent); }
+
+.emoji-picker { display: flex; flex-wrap: wrap; gap: 0.15rem; margin-right: auto; }
+.emoji-key {
+  padding: 0.15rem 0.3rem; border: 0; border-radius: var(--radius-sm);
+  background: none; font: inherit; font-size: 1.05rem; cursor: pointer;
+}
+.emoji-key:hover { background: var(--surface-2); }
 
 .post-actions { display: flex; gap: 0.35rem; padding: 0.4rem 0.6rem; border-top: 1px solid var(--border); }
 .action {
@@ -302,6 +342,18 @@ body.bare { display: grid; place-items: center; min-height: 100vh; }
 .bubble-me .bubble-time { color: rgba(255, 255, 255, 0.8); }
 .bubble-role { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem; color: var(--muted); margin: 0 0 0.2rem; }
 .bubble-me .bubble-role { color: rgba(255, 255, 255, 0.8); }
+/* An unsent message keeps its place in the thread and stops looking like a
+   message: no accent fill, italic, and the same muted grey on both sides. */
+.bubble-gone, .bubble-me.bubble-gone {
+  background: var(--surface-2); border-style: dashed;
+  border-color: var(--border); color: var(--muted);
+}
+.bubble-unsent { font-style: italic; font-size: 0.9rem; margin: 0; }
+.bubble-actions { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.25rem; }
+.bubble-actions form { display: contents; }
+.bubble-me .bubble-actions .link-button { color: rgba(255, 255, 255, 0.85); }
+.bubble-edit textarea { width: 100%; margin-bottom: 0.35rem; }
+
 .chat { display: grid; gap: 0.75rem; }
 .chat-pending { color: var(--muted); font-style: italic; }
 
