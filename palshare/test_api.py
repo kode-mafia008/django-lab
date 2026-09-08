@@ -115,7 +115,9 @@ class PostApiTests(ApiTestCase):
         for i in range(10):
             post = Post.objects.create(author=self.asha, text=f"post {i}")
             Like.objects.create(user=self.asha, post=post)
-        with self.assertNumQueries(3):
+        # Four, not three: the reactions prefetch. Still flat in row count,
+        # which is the only thing ten rows can prove.
+        with self.assertNumQueries(4):
             response = self.client.get("/api/palshare/posts/")
         self.assertEqual(len(response.data["results"]), 10)
 

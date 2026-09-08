@@ -61,5 +61,12 @@
 
 </div>
 
+{% comment %}
+  The app's only script, last so it enhances markup that already exists.
+  `versioned_static` rather than `static` for the same reason the
+  stylesheet uses it — an edited file that keeps its URL is an edited file
+  nobody in the room sees until they hard-refresh.
+{% endcomment %}
+<script src="{% versioned_static 'palshare/emoji.js' %}" defer></script>
 </body>
 </html>

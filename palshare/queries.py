@@ -22,8 +22,16 @@ def visible_posts(user):
     followed = Follow.objects.filter(follower=user).values("following")
     return (
         Post.objects
-        .select_related("author")
-        .prefetch_related("media")
+        # `author__profile` and not just `author`: every byline renders an
+        # avatar, and the avatar reads `author.profile.avatar`. A OneToOne
+        # followed per row is an N+1 spelled as an attribute access — the same
+        # one `people()` already documents, one level down.
+        .select_related("author", "author__profile")
+        # `reactions` is prefetched, not annotated: five emoji would be five
+        # correlated subqueries per row, and this is one query for the whole
+        # page. The serializer counts them in Python, where counting five
+        # things is free.
+        .prefetch_related("media", "reactions")
         .annotate(
             liked=Exists(Like.objects.filter(user=user, post=OuterRef("pk"))),
             saved=Exists(Save.objects.filter(user=user, post=OuterRef("pk"))),
@@ -105,9 +113,14 @@ def search(user, q):
         return {"query": q, "people": [], "posts": []}
     return {
         "query": q,
+        # Last name was missing here, so searching a room full of people by
+        # the half of their name they were introduced by found nobody. Bio is
+        # in for the same reason: it is the only other text a person writes
+        # about themselves.
         "people": people(user, User.objects.filter(
             Q(username__icontains=q) | Q(first_name__icontains=q)
-        ))[:10],
+            | Q(last_name__icontains=q) | Q(profile__bio__icontains=q)
+        ).distinct())[:10],
         # `visible_posts`, not `Post.objects`: search is the classic way private
         # data leaks, because the detail page checks permissions and the search
         # does not.

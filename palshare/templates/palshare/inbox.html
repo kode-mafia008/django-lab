@@ -20,7 +20,7 @@
       {% for conversation in conversations %}
         <li class="conversation {% if conversation.unread %}conversation-unread{% endif %}">
           <a class="conversation-link" href="{% url 'palshare:thread' conversation.id %}">
-            <span class="avatar">{{ conversation.person.avatar }}</span>
+            <span class="avatar">{% include "palshare/partials/_avatar.html" with who=conversation.person %}</span>
             <span class="conversation-body">
               <span class="conversation-head">
                 <span class="user-name">{{ conversation.person.name }}</span>

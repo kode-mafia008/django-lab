@@ -1,7 +1,7 @@
 {% load palshare_static %}
 {% comment %}
   Top bar: brand, global search, the signed-in user.
-  Reads: current_user (username, name, avatar)
+  Reads: current_user (username, name, avatar, avatar_url)
   Styles: palshare/static/palshare/palshare.css, loaded by base.html.
   Open this partial through a PalShare page so the base stylesheet is included.
 {% endcomment %}
@@ -40,7 +40,7 @@
         </a>
         <a class="topbar-profile" href="{% url 'palshare:profile' current_user.username %}"
            aria-label="Your profile: {{ current_user.name|default:current_user.username }}">
-          <span class="avatar topbar-avatar" aria-hidden="true">{{ current_user.avatar }}</span>
+          <span class="avatar topbar-avatar" aria-hidden="true">{% include "palshare/partials/_avatar.html" with who=current_user %}</span>
           <span class="topbar-profile-text">
             <span class="topbar-profile-name">{{ current_user.name|default:current_user.username }}</span>
             <span class="topbar-profile-handle">@{{ current_user.username }}</span>

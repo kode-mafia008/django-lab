@@ -86,9 +86,29 @@ class PostActionTests(InteractionTestCase):
         self.assertRedirects(response, self.feed)
 
     def test_the_card_has_no_inert_buttons_left(self):
+        """Every control on a post card submits something.
+
+        This used to assert `type="button"` appeared nowhere on the page, which
+        worked while the app had no JavaScript at all. The emoji picker is the
+        one exception and a real one: its keys type into a textarea, so they
+        must not submit. The assertion moved to the card itself, which is what
+        the test was ever about — the picker lives in the composer, above it.
+        """
         body = self.client.get(self.feed).content.decode()
-        self.assertNotIn('type="button"', body)
+        card = body[body.index("<article class=\"post\">"):body.index("</article>")]
+        self.assertNotIn('type="button"', card)
         self.assertIn(reverse("palshare:post-like", args=[self.post.pk]), body)
+
+    def test_the_only_non_submitting_buttons_are_the_emoji_keys(self):
+        """The picker is the app's one piece of JavaScript, and it is opt-in.
+
+        `hidden` in the markup means a browser with scripting off shows no
+        button at all, rather than a button that quietly does nothing — which
+        is the state this whole test class exists to prevent.
+        """
+        body = self.client.get(self.feed).content.decode()
+        self.assertEqual(body.count('type="button"'), body.count('class="emoji-key"'))
+        self.assertIn('data-emoji-picker="composer-text" hidden', body)
 
 
 class CommentActionTests(InteractionTestCase):

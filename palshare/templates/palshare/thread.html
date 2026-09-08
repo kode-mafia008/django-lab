@@ -3,7 +3,8 @@
 
 {% comment %}
   Feature 6 (messaging), conversation half.
-  Reads: conversation.person, thread_messages (list of {mine, text, sent_at})
+  Reads: conversation.{id,person}, thread_messages (list of
+         {id, mine, text, sent_at, edited, deleted}), editing (id being edited)
 
   Not `messages`: django.contrib.messages' context processor already owns that
   name, and base.html renders whatever is in it as flash messages. A chat
@@ -20,7 +21,7 @@
 {% block content %}
   <header class="thread-head card">
     <a class="icon-link" href="{% url 'palshare:inbox' %}" title="Back to inbox">←</a>
-    <a class="avatar" href="{% url 'palshare:profile' conversation.person.username %}">{{ conversation.person.avatar }}</a>
+    <a class="avatar" href="{% url 'palshare:profile' conversation.person.username %}">{% include "palshare/partials/_avatar.html" with who=conversation.person %}</a>
     <div>
       <a class="user-name" href="{% url 'palshare:profile' conversation.person.username %}">{{ conversation.person.name }}</a>
       <p class="post-meta">@{{ conversation.person.username }}</p>
@@ -31,9 +32,45 @@
     {% if thread_messages %}
       <ol class="bubble-list">
         {% for message in thread_messages %}
-          <li class="bubble {% if message.mine %}bubble-me{% endif %}">
-            <p>{{ message.text }}</p>
-            <p class="bubble-time">{{ message.sent_at }}</p>
+          <li id="m{{ message.id }}" class="bubble {% if message.mine %}bubble-me{% endif %} {% if message.deleted %}bubble-gone{% endif %}">
+            {% if message.deleted %}
+              {% comment %}
+                The row survives so the conversation keeps its shape and the
+                other person can see that something was taken back. The text
+                itself is gone from the database, not just hidden here.
+              {% endcomment %}
+              <p class="bubble-unsent">This message was unsent.</p>
+            {% elif editing == message.id|stringformat:"s" and message.mine %}
+              <form class="bubble-edit" method="post"
+                    action="{% url 'palshare:message-edit' message.id %}">
+                {% csrf_token %}
+                <label class="visually-hidden" for="edit-{{ message.id }}">Edit message</label>
+                <textarea id="edit-{{ message.id }}" name="text" rows="2" autofocus>{{ message.text }}</textarea>
+                <div class="bubble-actions">
+                  <button class="btn btn-primary btn-sm" type="submit">Save</button>
+                  <a class="btn btn-quiet btn-sm" href="{% url 'palshare:thread' conversation.id %}">Cancel</a>
+                </div>
+              </form>
+            {% else %}
+              <p>{{ message.text }}</p>
+              <p class="bubble-time">
+                {{ message.sent_at }}{% if message.edited %} · edited{% endif %}
+              </p>
+              {% if message.mine %}
+                {% comment %}
+                  Editing is a link because opening the form changes nothing;
+                  unsending is a form because it changes something. A GET that
+                  writes is a GET any crawler can trigger.
+                {% endcomment %}
+                <div class="bubble-actions">
+                  <a class="link-button" href="?edit={{ message.id }}#m{{ message.id }}">Edit</a>
+                  <form method="post" action="{% url 'palshare:message-unsend' message.id %}">
+                    {% csrf_token %}
+                    <button class="link-button" type="submit">Unsend</button>
+                  </form>
+                </div>
+              {% endif %}
+            {% endif %}
           </li>
         {% endfor %}
       </ol>
@@ -47,6 +84,7 @@
     <div class="composer-body">
       <label class="visually-hidden" for="message-text">Message</label>
       <textarea id="message-text" name="text" rows="1" placeholder="Write a message"></textarea>
+      {% include "palshare/partials/_emoji_picker.html" with target="message-text" %}
       <div class="composer-actions">
         <button class="btn btn-primary btn-sm" type="submit">Send</button>
       </div>

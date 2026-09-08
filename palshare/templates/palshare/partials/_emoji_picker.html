@@ -1,0 +1,16 @@
+{% comment %}
+  An emoji palette that types into a textarea.
+
+  `hidden` in the markup and un-hidden by emoji.js, so with scripting off there
+  is no button here that does nothing. The system picker still works in the
+  textarea either way — this is a convenience, not the only way in.
+
+  Reads: emoji (list), target (the id of the textarea to type into)
+{% endcomment %}
+<div class="emoji-picker" data-emoji-picker="{{ target }}" hidden>
+  <span class="visually-hidden">Insert an emoji</span>
+  {% for character in emoji %}
+    <button class="emoji-key" type="button" data-emoji="{{ character }}"
+            title="Insert {{ character }}">{{ character }}</button>
+  {% endfor %}
+</div>

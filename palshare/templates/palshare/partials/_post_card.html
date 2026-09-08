@@ -4,13 +4,13 @@
   around this include and nothing else.
 
   Reads: post.id, post.author.{username,name,avatar}, post.age, post.text,
-         post.media (list of {kind, alt}), post.likes, post.comments, post.shares,
+         post.media (list of {kind, alt, file}), post.likes, post.comments, post.shares,
          post.liked, post.saved
 {% endcomment %}
 <article class="post">
 
   <header class="post-head">
-    <a class="avatar" href="{% url 'palshare:profile' post.author.username %}">{{ post.author.avatar }}</a>
+    <a class="avatar" href="{% url 'palshare:profile' post.author.username %}">{% include "palshare/partials/_avatar.html" with who=post.author %}</a>
     <div class="post-who">
       <a class="post-name" href="{% url 'palshare:profile' post.author.username %}">{{ post.author.name }}</a>
       <span class="post-meta">@{{ post.author.username }} · {{ post.age }}</span>
@@ -26,14 +26,44 @@
     <div class="post-media {% if post.media|length > 1 %}post-media-grid{% endif %}">
       {% for item in post.media %}
         {% comment %}
-          No <img src> yet: the backend has not decided where uploads live.
-          The placeholder keeps the layout honest — same aspect ratio, same
-          rounding — so nothing shifts when real media arrives.
+          `item.file` is the URL the serializer renders from MEDIA_URL. The
+          placeholder is still here because demo.py's rows have no file, so the
+          shell keeps working with the same markup and the same layout.
         {% endcomment %}
-        <div class="media-placeholder" role="img" aria-label="{{ item.alt }}">{{ item.alt }}</div>
+        {% if item.file %}
+          {% if item.kind == "video" %}
+            <video class="media-item" src="{{ item.file }}" controls preload="metadata"></video>
+          {% else %}
+            <img class="media-item" src="{{ item.file }}" alt="{{ item.alt }}" loading="lazy">
+          {% endif %}
+        {% else %}
+          <div class="media-placeholder" role="img" aria-label="{{ item.alt }}">{{ item.alt }}</div>
+        {% endif %}
       {% endfor %}
     </div>
   {% endif %}
+
+  {% comment %}
+    The reaction bar. One form, five buttons, and the button you already
+    pressed is the one that takes it back — which is why they all post the same
+    field with different values rather than being five separate forms.
+
+    Reads: post.reactions, a list of {emoji, label, count, mine} covering the
+    whole palette, so the bar has the same five buttons on every post.
+  {% endcomment %}
+  <form class="reactions" method="post" action="{% url 'palshare:post-react' post.id %}">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    {% for reaction in post.reactions %}
+      <button class="reaction {% if reaction.mine %}reaction-on{% endif %}"
+              type="submit" name="emoji" value="{{ reaction.emoji }}"
+              aria-pressed="{% if reaction.mine %}true{% else %}false{% endif %}"
+              title="{% if reaction.mine %}Remove {{ reaction.label }}{% else %}{{ reaction.label }}{% endif %}">
+        <span aria-hidden="true">{{ reaction.emoji }}</span>
+        <span class="visually-hidden">{{ reaction.label }}</span>
+        {% if reaction.count %}<span class="reaction-count">{{ reaction.count }}</span>{% endif %}
+      </button>
+    {% endfor %}
+  </form>
 
   {% comment %}
     Three of these are one-button forms rather than JavaScript. A form works

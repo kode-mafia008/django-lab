@@ -14,7 +14,7 @@
 
 {% block content %}
   <header class="card profile-head">
-    <div class="avatar avatar-lg">{{ profile.avatar }}</div>
+    <div class="avatar avatar-lg">{% include "palshare/partials/_avatar.html" with who=profile %}</div>
 
     <div class="profile-id">
       <h1 class="profile-name">
@@ -26,8 +26,13 @@
 
       <p class="profile-stats">
         <span><strong>{{ profile.post_count }}</strong> posts</span>
-        <a href="{% url 'palshare:connections' profile.username %}"><strong>{{ profile.followers }}</strong> followers</a>
-        <a href="{% url 'palshare:connections' profile.username %}"><strong>{{ profile.following }}</strong> following</a>
+        {% comment %}
+          Both of these used to point at the same bare URL, and `connections`
+          defaults to the followers tab — so "following" always showed you
+          followers and the number never matched the list.
+        {% endcomment %}
+        <a href="{% url 'palshare:connections' profile.username %}?tab=followers"><strong>{{ profile.followers }}</strong> followers</a>
+        <a href="{% url 'palshare:connections' profile.username %}?tab=following"><strong>{{ profile.following }}</strong> following</a>
       </p>
     </div>
 
@@ -57,10 +62,14 @@
   {% if profile.is_private and not profile.is_following and not profile.is_me %}
     {% include "palshare/partials/_empty.html" with empty_title="This account is private" empty_text="Follow to see their posts." %}
   {% else %}
+    {% comment %}
+      `tab` comes from the view now. All three used to be hardcoded with Posts
+      always active, so the other two changed the URL and nothing else.
+    {% endcomment %}
     <div class="tabs">
-      <a class="tab tab-active" href="?tab=posts">Posts</a>
-      <a class="tab" href="?tab=media">Media</a>
-      <a class="tab" href="?tab=likes">Likes</a>
+      <a class="tab {% if tab == 'posts' %}tab-active{% endif %}" href="?tab=posts">Posts</a>
+      <a class="tab {% if tab == 'media' %}tab-active{% endif %}" href="?tab=media">Media</a>
+      <a class="tab {% if tab == 'likes' %}tab-active{% endif %}" href="?tab=likes">Likes</a>
     </div>
 
     {% if posts %}
@@ -71,7 +80,13 @@
       </div>
       {% include "palshare/partials/_pagination.html" %}
     {% else %}
-      {% include "palshare/partials/_empty.html" with empty_title="No posts yet" %}
+      {% if tab == "media" %}
+        {% include "palshare/partials/_empty.html" with empty_title="No photos or video yet" %}
+      {% elif tab == "likes" %}
+        {% include "palshare/partials/_empty.html" with empty_title="No liked posts yet" %}
+      {% else %}
+        {% include "palshare/partials/_empty.html" with empty_title="No posts yet" %}
+      {% endif %}
     {% endif %}
   {% endif %}
 {% endblock %}

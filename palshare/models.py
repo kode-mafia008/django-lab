@@ -110,6 +110,40 @@ class Share(models.Model):
         constraints = [models.UniqueConstraint(fields=["user", "post"], name="one_share_per_user")]
 
 
+class Reaction(models.Model):
+    """One emoji per person per post, and changing it replaces it.
+
+    The same shape as `Like` with one extra column, and deliberately *not* a
+    replacement for it: `♥` is its own control in every card, the API has a
+    `like` action, and a counter cache behind it. A reaction is the second,
+    softer thing you can say about a post, not a rename of the first.
+
+    The palette is a fixed list rather than free text. An open emoji column is
+    an open text column — someone reacts with an essay, or with an emoji that
+    renders as a box on half the machines in the room.
+    """
+
+    EMOJI = [
+        ("\U0001f44d", "Thumbs up"),
+        ("\u2764\ufe0f", "Heart"),
+        ("\U0001f602", "Laugh"),
+        ("\U0001f62e", "Surprise"),
+        ("\U0001f389", "Celebrate"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="reactions")
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="reactions")
+    # `max_length` is characters, not bytes, and "❤️" is two of them: the heart
+    # plus a variation selector. Four leaves room for a flag or a skin tone.
+    emoji = models.CharField(max_length=4, choices=EMOJI)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "post"],
+                                               name="one_reaction_per_user")]
+
+
 class CommentLike(models.Model):
     """Same shape again, one level down. `_comment.html` has a Like button."""
 
@@ -156,6 +190,23 @@ class Message(models.Model):
     text = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
+    # Both nullable rather than a boolean: "when" answers "whether" too, and
+    # the thread shows the time an edit happened.
+    edited_at = models.DateTimeField(null=True, blank=True)
+    # Unsending is a soft delete. The row stays so the thread keeps its shape
+    # and the other person sees that something was taken back rather than a
+    # conversation that silently reads differently than they remember. The
+    # text itself is cleared on the way out — an unsent message the server
+    # still stores is not unsent.
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["sent_at"]
+
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
+
+    @property
+    def is_edited(self):
+        return self.edited_at is not None

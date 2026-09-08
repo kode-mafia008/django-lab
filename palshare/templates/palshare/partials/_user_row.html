@@ -3,7 +3,7 @@
   Reads: person.{username,name,avatar,bio,is_following}
 {% endcomment %}
 <li class="user-row">
-  <a class="avatar" href="{% url 'palshare:profile' person.username %}">{{ person.avatar }}</a>
+  <a class="avatar" href="{% url 'palshare:profile' person.username %}">{% include "palshare/partials/_avatar.html" with who=person %}</a>
   <div class="user-row-body">
     <a class="user-name" href="{% url 'palshare:profile' person.username %}">{{ person.name }}</a>
     <span class="post-meta">@{{ person.username }}</span>

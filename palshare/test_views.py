@@ -232,11 +232,17 @@ class QueryCountTests(PalShareTestCase):
             Like.objects.create(user=self.bello, post=post)
 
     def test_the_feed_costs_the_same_for_three_rows_and_thirty(self):
+        # Eight, not six. Both extra queries are per-page, not per-row, which
+        # is the property this test actually pins:
+        #   +1  the reactions prefetch, one query for every row on the page
+        #   +1  your own profile, read once by the header's avatar
+        # `request.user` arrives from the auth middleware without its profile,
+        # so that hop cannot be select_related away from here.
         self.make_posts(3)
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(8):
             self.client.get(reverse("palshare:feed"))
         self.make_posts(27)
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(8):
             self.client.get(reverse("palshare:feed"))
 
     def test_search_does_not_pay_per_person(self):

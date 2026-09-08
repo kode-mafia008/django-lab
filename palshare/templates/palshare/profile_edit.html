@@ -22,7 +22,18 @@
 
       <div class="field">
         <label for="id_avatar">Profile picture</label>
+        {% comment %}
+          The current picture, above the input that replaces it. Without it the
+          only way to find out whether an upload worked is to leave the page.
+        {% endcomment %}
+        <div class="avatar-preview">
+          <span class="avatar avatar-lg">{% include "palshare/partials/_avatar.html" with who=profile %}</span>
+          {% if not profile.avatar_url %}
+            <span class="helptext">No picture yet — your initial is used instead.</span>
+          {% endif %}
+        </div>
         <input id="id_avatar" type="file" name="avatar" accept="image/*">
+        <p class="helptext">A JPG, PNG, GIF or WebP, up to 10 MB.</p>
       </div>
 
       <div class="form-actions">

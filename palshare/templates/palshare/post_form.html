@@ -19,6 +19,7 @@
         <label for="id_text">Post</label>
         <textarea id="id_text" name="text" rows="6" autofocus
                   placeholder="What are you working on?">{{ post.text|default:'' }}</textarea>
+        {% include "palshare/partials/_emoji_picker.html" with target="id_text" %}
       </div>
 
       <div class="field">

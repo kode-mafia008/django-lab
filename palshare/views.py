@@ -10,11 +10,14 @@ context keys and the markup are all exactly what the shell was built with;
 `demo.py` said what the shapes were, and these views produce them.
 """
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
@@ -25,9 +28,14 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST, require_http_methods
 
 from .integrations import ask_assistant, current_weather
-from .models import Comment, Conversation, Follow, Message, Post, Profile
+from .models import Comment, Conversation, Follow, Message, Post, Profile, Reaction
 from .services import (
     add_comment,
+    attach_media,
+    edit_message,
+    set_avatar,
+    set_reaction,
+    unsend_message,
     conversation_with,
     toggle_comment_like,
     toggle_follow,
@@ -95,14 +103,19 @@ def shell(request, **context):
     thing turns up, this becomes a context processor.
     """
     user = request.user
-    context.setdefault("current_user", {
-        "username": user.username,
-        "name": display_name(user),
-        "avatar": initial(user),
-    })
+    # Serialized rather than hand-built. The hand-built dict had three of the
+    # four keys `_avatar.html` reads, so the header and the composer showed
+    # your initial even after you had uploaded a picture — while every other
+    # avatar on the same page showed the picture. A shape assembled twice is a
+    # shape that disagrees with itself.
+    context.setdefault("current_user",
+                       PersonRowSerializer(user, context={"request": request}).data)
     # `None` when the key is missing or the API is down. The widget has an
     # empty state and renders it.
     context.setdefault("weather", current_weather())
+    # The one palette, defined on the model, handed to every template that
+    # offers emoji — the picker and the reaction bar read the same list.
+    context.setdefault("emoji", [value for value, _ in Reaction.EMOJI])
     context.setdefault("suggestions", PersonRowSerializer(
         suggestions_for(user), many=True, context={"request": request}).data)
     return context
@@ -168,8 +181,18 @@ def feed(request):
     """
     if request.method == "POST":
         text = request.POST.get("text", "").strip()
-        if text:
-            Post.objects.create(author=request.user, text=text)
+        # `_composer.html` has had an "Add media" file input since hour one and
+        # this handler read only `text`, so anything attached here was dropped
+        # on the floor without a word. Same rule as `post_create`.
+        uploads = request.FILES.getlist("media")
+        if text or uploads:
+            try:
+                with transaction.atomic():
+                    post = Post.objects.create(author=request.user, text=text)
+                    attach_media(post, uploads)
+            except ValidationError as exc:
+                for message in exc.messages:
+                    messages.error(request, message)
         return redirect("palshare:feed")
 
     posts = visible_posts(request.user)
@@ -187,14 +210,29 @@ def feed(request):
 def post_create(request):
     if request.method == "POST":
         text = request.POST.get("text", "").strip()
-        if text:
-            post = Post.objects.create(
-                author=request.user,
-                text=text,
-                followers_only=bool(request.POST.get("private")),
-            )
-            return redirect("palshare:post-detail", pk=post.pk)
-        messages.error(request, "A post needs some text.")
+        # `getlist`, not `request.FILES["media"]`: the input is `multiple`, and
+        # the dict access silently returns the last file of four.
+        uploads = request.FILES.getlist("media")
+        if text or uploads:
+            try:
+                # The post and its files are one write. Without the atomic
+                # block a rejected file leaves an empty post behind, which is
+                # the user having posted something they did not write.
+                with transaction.atomic():
+                    post = Post.objects.create(
+                        author=request.user,
+                        text=text,
+                        followers_only=bool(request.POST.get("private")),
+                    )
+                    attach_media(post, uploads)
+            except ValidationError as exc:
+                for message in exc.messages:
+                    messages.error(request, message)
+            else:
+                return redirect("palshare:post-detail", pk=post.pk)
+        else:
+            # A photo with no caption is a post. Empty is not.
+            messages.error(request, "A post needs some text or a file.")
     return render(request, "palshare/post_form.html",
                   shell(request, heading="New post"))
 
@@ -211,12 +249,23 @@ def post_edit(request, pk):
         return HttpResponseForbidden("You can only change things you created.")
     if request.method == "POST":
         text = request.POST.get("text", "").strip()
-        if text:
-            post.text = text
-            post.followers_only = bool(request.POST.get("private"))
-            post.save(update_fields=["text", "followers_only", "updated_at"])
-            return redirect("palshare:post-detail", pk=post.pk)
-        messages.error(request, "A post needs some text.")
+        uploads = request.FILES.getlist("media")
+        if text or uploads or post.media.exists():
+            try:
+                with transaction.atomic():
+                    post.text = text
+                    post.followers_only = bool(request.POST.get("private"))
+                    post.save(update_fields=["text", "followers_only", "updated_at"])
+                    # Editing adds files, it does not replace them: removing one
+                    # is a different action and needs its own control.
+                    attach_media(post, uploads)
+            except ValidationError as exc:
+                for message in exc.messages:
+                    messages.error(request, message)
+            else:
+                return redirect("palshare:post-detail", pk=post.pk)
+        else:
+            messages.error(request, "A post needs some text or a file.")
     return render(request, "palshare/post_form.html", shell(
         request,
         heading="Edit post",
@@ -264,10 +313,27 @@ def profile(request, username):
     owner = get_object_or_404(people(request.user), username=username)
     profile_of(owner)  # `may_see_posts` reads `owner.profile`
 
-    context = shell(request, active="profile", posts=[],
+    # The three tabs were `?tab=` links that no view read, so Media and Likes
+    # both rendered the Posts list and the active tab never moved.
+    tab = request.GET.get("tab", "posts")
+    if tab not in {"posts", "media", "likes"}:
+        tab = "posts"
+
+    context = shell(request, active="profile", posts=[], tab=tab,
                     profile=PersonSerializer(owner, context={"request": request}).data)
     if may_see_posts(request.user, owner):
-        context.update(posts_page(request, visible_posts(request.user).filter(author=owner)))
+        posts = visible_posts(request.user)
+        if tab == "media":
+            # `media__isnull=False` alone returns one row per attached file.
+            posts = posts.filter(author=owner, media__isnull=False).distinct()
+        elif tab == "likes":
+            # Posts this person liked, not posts of theirs that were liked —
+            # which is what the word means everywhere else it appears in a
+            # social app.
+            posts = posts.filter(likes__user=owner)
+        else:
+            posts = posts.filter(author=owner)
+        context.update(posts_page(request, posts))
     return render(request, "palshare/profile.html", context)
 
 
@@ -285,9 +351,19 @@ def profile_edit(request, username):
         user.save(update_fields=["first_name", "last_name"])
         profile.bio = request.POST.get("bio", "").strip()
         profile.save(update_fields=["bio"])
-        # The file input on this form is ignored until Part 6 lands MEDIA_ROOT
-        # and the upload validator. Saving the file without either is how you
-        # get an unvalidated upload directory.
+        # MEDIA_ROOT and the validator both exist now, so the file input on
+        # this form is no longer ignored. It was, silently, which is why the
+        # picture never changed and nothing ever said why.
+        upload = request.FILES.get("avatar")
+        if upload:
+            try:
+                set_avatar(profile, upload)
+            except ValidationError as exc:
+                for message in exc.messages:
+                    messages.error(request, message)
+                return render(request, "palshare/profile_edit.html", shell(
+                    request,
+                    profile=PersonSerializer(user, context={"request": request}).data))
         messages.success(request, "Profile updated.")
         return redirect("palshare:profile", username=user.username)
     return render(request, "palshare/profile_edit.html", shell(
@@ -379,6 +455,11 @@ def thread(request, pk):
     return render(request, "palshare/thread.html", shell(
         request,
         active="inbox",
+        # `?edit=<id>` opens one bubble as a form. A query parameter rather
+        # than JavaScript, for the same reason every other control here is a
+        # form: it survives a reload and it works with the keyboard.
+        editing=request.GET.get("edit", ""),
+        emoji=[value for value, _ in Reaction.EMOJI],
         conversation={
             "id": conversation.pk,
             "person": PersonRowSerializer(other, context={"request": request}).data,
@@ -409,7 +490,14 @@ def assistant(request):
             turns = turns + [{"role": "you", "text": prompt}]
             reply = ask_assistant(prompt)
             if reply is None:
-                error = "The assistant is unavailable right now. Try again in a moment."
+                # Two different failures wore one message, so "it does not
+                # work" was indistinguishable from "nobody has configured it".
+                # The first is a five-second fix and the page now says so.
+                if not settings.NVIDIA_API_KEY:
+                    error = ("The assistant has no API key. Set NVIDIA_API_KEY in .env "
+                             "and restart the server — see .env.example.")
+                else:
+                    error = "The assistant is unavailable right now. Try again in a moment."
             else:
                 turns.append({"role": "assistant", "text": reply})
             request.session["assistant_turns"] = turns[-20:]
@@ -445,6 +533,52 @@ def post_save(request, pk):
 def post_share(request, pk):
     toggle_share(request.user, get_object_or_404(visible_posts(request.user), pk=pk))
     return back(request, "palshare:feed")
+
+
+@signed_in
+@require_POST
+def post_react(request, pk):
+    """The emoji bar under a post. One reaction per person, and pressing the
+    one you already picked takes it back."""
+    post = get_object_or_404(visible_posts(request.user), pk=pk)
+    try:
+        set_reaction(request.user, post, request.POST.get("emoji") or None)
+    except ValidationError as exc:
+        for message in exc.messages:
+            messages.error(request, message)
+    return back(request, reverse("palshare:post-detail", args=[post.pk]))
+
+
+# --- messages you can take back -------------------------------------------
+#
+# Both of these are POST-only and both re-check the sender in `services.py`,
+# not here: "you may only change your own message" is a rule about messages,
+# and a rule that lives in a view is a rule the API gets to disagree with.
+
+@signed_in
+@require_POST
+def message_edit(request, pk):
+    message = get_object_or_404(
+        Message.objects.filter(conversation__participants=request.user), pk=pk)
+    try:
+        edit_message(request.user, message, request.POST.get("text", ""))
+    except ValidationError as exc:
+        for text in exc.messages:
+            messages.error(request, text)
+    return redirect("palshare:thread", pk=message.conversation_id)
+
+
+@signed_in
+@require_POST
+def message_unsend(request, pk):
+    message = get_object_or_404(
+        Message.objects.filter(conversation__participants=request.user), pk=pk)
+    try:
+        unsend_message(request.user, message)
+    except ValidationError as exc:
+        for text in exc.messages:
+            messages.error(request, text)
+    return redirect("palshare:thread", pk=message.conversation_id)
 
 
 @signed_in

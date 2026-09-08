@@ -151,6 +151,23 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Uploaded files
+# https://docs.djangoproject.com/en/5.2/topics/files/
+#
+# Both of these have to exist before a single FileField works. Without
+# MEDIA_ROOT, an upload is written relative to whatever directory the server
+# happens to have been started in; without MEDIA_URL, `file.url` raises
+# ValueError and the template that renders it 500s. Neither failure says
+# "you forgot a setting", which is why this was a silent bug.
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Bigger than this and Django streams the upload to a temp file instead of
+# holding it in memory. It is not the size limit — palshare/validators.py
+# owns that, and rejects the file. This only decides where the bytes wait
+# while they are being checked.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
